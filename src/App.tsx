@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { EditorPanel } from "./panels/EditorPanel";
 import { PDFPanel } from "./panels/PDFPanel";
@@ -12,21 +12,48 @@ interface OpenFile {
 
 function App() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
+  const contentRef = useRef<string>("");
 
   const handleOpenFile = useCallback(async () => {
     const result = await window.electronAPI.openFile();
-    if (result) setOpenFile(result);
+    if (result) {
+      contentRef.current = result.content;
+      setOpenFile(result);
+    }
   }, []);
 
   const handleNewFile = useCallback(async () => {
-    const result = await window.electronAPI.newFile();
+    const dir = await window.electronAPI.chooseDirectory();
+    if (!dir) return;
+    const result = await window.electronAPI.newFile(dir);
+    contentRef.current = result.content;
     setOpenFile(result);
   }, []);
 
   const handleOpenRecent = useCallback(async (filePath: string) => {
     const result = await window.electronAPI.openPath(filePath);
+    contentRef.current = result.content;
     setOpenFile(result);
   }, []);
+
+  const handleEditorChange = useCallback((value: string) => {
+    contentRef.current = value;
+    setOpenFile((prev) => (prev ? { ...prev, content: value } : null));
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    if (!openFile?.filePath) return;
+    await window.electronAPI.saveFile(openFile.filePath, contentRef.current);
+  }, [openFile?.filePath]);
+
+  const handleRename = useCallback(
+    async (newName: string) => {
+      if (!openFile?.filePath) return;
+      const newPath = await window.electronAPI.renameFile(openFile.filePath, newName);
+      setOpenFile((prev) => (prev ? { ...prev, filePath: newPath } : null));
+    },
+    [openFile?.filePath]
+  );
 
   if (!openFile) {
     return (
@@ -49,19 +76,20 @@ function App() {
           gap: 12,
         }}
       >
-        <strong>Intellitex</strong>
-        <span style={{ fontSize: 13, color: "#6b7280" }}>
-          {openFile.filePath
-            ? openFile.filePath.split("/").pop()
-            : "Untitled.tex"}
-        </span>
+        <strong onClick={() => setOpenFile(null)}>Intellitex</strong>
         <div style={{ flex: 1 }} />
         <button type="button">Compile</button>
         <button type="button">Export</button>
       </header>
       <PanelGroup direction="horizontal" style={{ flex: 1, minHeight: 0 }}>
         <Panel defaultSize={35} minSize={20}>
-          <EditorPanel />
+          <EditorPanel
+            content={openFile.content}
+            filePath={openFile.filePath}
+            onChange={handleEditorChange}
+            onSave={handleSave}
+            onRename={handleRename}
+          />
         </Panel>
         <PanelResizeHandle style={{ width: 6, background: "#e0e0e0" }} />
         <Panel defaultSize={40} minSize={20}>
