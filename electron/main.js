@@ -66,12 +66,60 @@ ipcMain.handle("file:openPath", async (_event, filePath) => {
   return { filePath, content };
 });
 
-ipcMain.handle("file:new", async () => {
-  return { filePath: null, content: "" };
+ipcMain.handle("file:new", async (_event, directory) => {
+  let name = "untitled.tex";
+  let counter = 1;
+  while (true) {
+    try {
+      await fs.access(path.join(directory, name));
+      name = `untitled${counter}.tex`;
+      counter++;
+    } catch {
+      break;
+    }
+  }
+  const filePath = path.join(directory, name);
+  const template = [
+    "\\documentclass{article}",
+    "",
+    "\\begin{document}",
+    "",
+    "Hello, world!",
+    "",
+    "\\end{document}",
+  ].join("\n");
+  await fs.writeFile(filePath, template, "utf-8");
+  await addRecent(filePath);
+  return { filePath, content: template };
+});
+
+ipcMain.handle("file:save", async (_event, filePath, content) => {
+  await fs.writeFile(filePath, content, "utf-8");
+});
+
+ipcMain.handle("file:rename", async (_event, oldPath, newName) => {
+  const dir = path.dirname(oldPath);
+  const newPath = path.join(dir, newName.endsWith(".tex") ? newName : newName + ".tex");
+  await fs.rename(oldPath, newPath);
+
+  const recents = await readRecents();
+  const filtered = recents.filter((p) => p !== oldPath);
+  const updated = [newPath, ...filtered].slice(0, 10);
+  await fs.writeFile(RECENTS_PATH(), JSON.stringify(updated), "utf-8");
+
+  return newPath;
 });
 
 ipcMain.handle("file:getRecents", async () => {
   return readRecents();
+});
+
+ipcMain.handle("file:chooseDirectory", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ["openDirectory"],
+  });
+  if (canceled || filePaths.length === 0) return null;
+  return filePaths[0];
 });
 
 app.whenReady().then(createWindow);
