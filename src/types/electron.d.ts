@@ -1,3 +1,5 @@
+import type { CompileResult } from "../compiler/types";
+
 interface ElectronAPI {
   openFile: () => Promise<{ filePath: string; content: string } | null>;
   openPath: (filePath: string) => Promise<{ filePath: string; content: string }>;
@@ -7,6 +9,7 @@ interface ElectronAPI {
   getRecents: () => Promise<string[]>;
   chooseDirectory: () => Promise<string | null>;
   onMenuSave: (callback: () => void) => void;
+  compileFile: (filePath: string) => Promise<CompileResult>;
 }
 
 interface Window {

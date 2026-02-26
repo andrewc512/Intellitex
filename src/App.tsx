@@ -4,6 +4,7 @@ import { EditorPanel } from "./panels/EditorPanel";
 import { PDFPanel } from "./panels/PDFPanel";
 import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
+import type { CompileStatus } from "./compiler/types";
 
 interface OpenFile {
   filePath: string | null;
@@ -14,6 +15,7 @@ function App() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const contentRef = useRef<string>("");
   const [recents, setRecents] = useState<string[]>([]);
+  const [compileState, setCompileState] = useState<CompileStatus>({ status: "idle" });
 
   useEffect(() => {
     window.electronAPI.getRecents().then(setRecents);
@@ -55,6 +57,15 @@ function App() {
     window.electronAPI.onMenuSave(() => handleSave());
   }, [handleSave]);
 
+  const handleCompile = useCallback(async () => {
+    if (!openFile?.filePath) return;
+    // Save first so the compiled file is up to date
+    await window.electronAPI.saveFile(openFile.filePath, contentRef.current);
+    setCompileState({ status: "compiling" });
+    const result = await window.electronAPI.compileFile(openFile.filePath);
+    setCompileState({ status: "done", result });
+  }, [openFile?.filePath]);
+
   const handleRename = useCallback(
     async (newName: string) => {
       if (!openFile?.filePath) return; 
@@ -93,7 +104,13 @@ function App() {
       >
         <strong onClick={() => setOpenFile(null)}>Intellitex</strong>
         <div style={{ flex: 1 }} />
-        <button type="button">Compile</button>
+        <button
+          type="button"
+          onClick={handleCompile}
+          disabled={compileState.status === "compiling"}
+        >
+          {compileState.status === "compiling" ? "Compiling…" : "Compile"}
+        </button>
         <button type="button">Export</button>
       </header>
       <PanelGroup direction="horizontal" style={{ flex: 1, minHeight: 0 }}>
@@ -108,7 +125,7 @@ function App() {
         </Panel>
         <PanelResizeHandle style={{ width: 6, background: "#e0e0e0" }} />
         <Panel defaultSize={40} minSize={20}>
-          <PDFPanel />
+          <PDFPanel compileState={compileState} />
         </Panel>
         <PanelResizeHandle style={{ width: 6, background: "#e0e0e0" }} />
         <Panel defaultSize={25} minSize={15}>

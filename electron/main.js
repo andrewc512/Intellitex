@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
+const { compile } = require("./compiler");
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
@@ -138,6 +139,10 @@ ipcMain.handle("file:rename", async (_event, oldPath, newName) => {
 
 ipcMain.handle("file:getRecents", async () => {
   return readRecents();
+});
+
+ipcMain.handle("compile:file", async (_event, filePath) => {
+  return compile(filePath);
 });
 
 ipcMain.handle("file:chooseDirectory", async () => {

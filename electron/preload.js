@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getRecents: () => ipcRenderer.invoke("file:getRecents"),
   saveFile: (filePath, content) => ipcRenderer.invoke("file:save", filePath, content),
   renameFile: (oldPath, newName) => ipcRenderer.invoke("file:rename", oldPath, newName),
-  onMenuSave: (callback) => ipcRenderer.on("menu:save", callback)
+  onMenuSave: (callback) => ipcRenderer.on("menu:save", callback),
+  compileFile: (filePath) => ipcRenderer.invoke("compile:file", filePath)
 });
