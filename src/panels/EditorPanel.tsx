@@ -107,11 +107,10 @@ export function EditorPanel({ content, filePath, onChange, onSave, onRename }: E
             lineNumbers: "on",
             scrollBeyondLastLine: false,
           }}
-          onMount={(editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+          onMount={(editorInstance: editor.IStandaloneCodeEditor) => {
             editorInstance.addAction({
               id: "save-file",
               label: "Save File",
-              keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
               run: onSave,
             });
           }}
