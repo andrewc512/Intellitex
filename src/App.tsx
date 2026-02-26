@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { EditorPanel } from "./panels/EditorPanel";
 import { PDFPanel } from "./panels/PDFPanel";
@@ -13,6 +13,11 @@ interface OpenFile {
 function App() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const contentRef = useRef<string>("");
+  const [recents, setRecents] = useState<string[]>([]);
+
+  useEffect(() => {
+    window.electronAPI.getRecents().then(setRecents);
+  }, []);
 
   const handleOpenFile = useCallback(async () => {
     const result = await window.electronAPI.openFile();
@@ -46,11 +51,20 @@ function App() {
     await window.electronAPI.saveFile(openFile.filePath, contentRef.current);
   }, [openFile?.filePath]);
 
+  useEffect(() => {
+    window.electronAPI.onMenuSave(() => handleSave());
+  }, [handleSave]);
+
   const handleRename = useCallback(
     async (newName: string) => {
-      if (!openFile?.filePath) return;
+      if (!openFile?.filePath) return; 
+      //console.log("renaming from", openFile.filePath, "to", newName);
       const newPath = await window.electronAPI.renameFile(openFile.filePath, newName);
+      //console.log("new path returned:", newPath)
       setOpenFile((prev) => (prev ? { ...prev, filePath: newPath } : null));
+      const updatedRecents = await window.electronAPI.getRecents();
+      console.log("updated recents:", updatedRecents)
+      setRecents(updatedRecents);
     },
     [openFile?.filePath]
   );
@@ -61,6 +75,7 @@ function App() {
         onOpenFile={handleOpenFile}
         onNewFile={handleNewFile}
         onOpenRecent={handleOpenRecent}
+        recents={recents}
       />
     );
   }

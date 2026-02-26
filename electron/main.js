@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
 
@@ -6,6 +6,30 @@ const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
 const RECENTS_PATH = () =>
   path.join(app.getPath("userData"), "recent-files.json");
+
+function createMenu( win ) {
+  const menu = Menu.buildFromTemplate([
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "Save",
+          accelerator: "CmdOrCtrl+S",
+          click: () => {
+            win.webContents.send("menu:save");
+          },
+        },
+        {
+          type: "separator",
+        },
+        {
+          role: "quit",
+        }
+      ],
+    },
+  ]);
+  Menu.setApplicationMenu(menu);
+}
 
 async function readRecents() {
   try {
@@ -36,6 +60,8 @@ function createWindow() {
       nodeIntegration: false,
     },
   });
+
+  createMenu(win);
 
   if (isDev) {
     win.loadURL("http://localhost:5173");

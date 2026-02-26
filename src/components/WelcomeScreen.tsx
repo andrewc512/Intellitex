@@ -4,18 +4,20 @@ interface WelcomeScreenProps {
   onOpenFile: () => void;
   onNewFile: () => void;
   onOpenRecent: (filePath: string) => void;
+  recents: string[];
 }
 
 export function WelcomeScreen({
   onOpenFile,
   onNewFile,
   onOpenRecent,
+  recents,
 }: WelcomeScreenProps) {
   const [recentFiles, setRecentFiles] = useState<string[]>([]);
 
   useEffect(() => {
-    window.electronAPI?.getRecents().then(setRecentFiles).catch(() => {});
-  }, []);
+    setRecentFiles(recents);
+  }, [recents]);
 
   return (
     <div style={styles.container}>

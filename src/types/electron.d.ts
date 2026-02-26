@@ -6,6 +6,7 @@ interface ElectronAPI {
   renameFile: (oldPath: string, newName: string) => Promise<string>;
   getRecents: () => Promise<string[]>;
   chooseDirectory: () => Promise<string | null>;
+  onMenuSave: (callback: () => void) => void;
 }
 
 interface Window {
