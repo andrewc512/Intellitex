@@ -32,7 +32,7 @@
   },
   "build": {
     "appId": "com.intellitex.app",
-    "productName": "Intellitex",
+    "productName": "IntelliTex",
     "directories": {
       "output": "release"
     },

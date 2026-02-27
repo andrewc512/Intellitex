@@ -62,59 +62,57 @@ export function PDFPanel({ compileState }: PDFPanelProps) {
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        borderRight: "1px solid #e0e0e0",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          padding: "8px 12px",
-          borderBottom: "1px solid #e0e0e0",
-          fontSize: 12,
-          color: "#666",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-        }}
-      >
-        <span>PDF PREVIEW</span>
+    <div className="panel" role="region" aria-label="PDF Preview">
+      <div className="panel-header">
+        <svg className="panel-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        <span className="panel-header-title">Preview</span>
+
         {statusLabel() && (
-          <span style={{ color: statusColor(), marginLeft: "auto" }}>
+          <span style={{ color: statusColor(), marginLeft: "auto", fontSize: 12 }}>
             {statusLabel()}
           </span>
         )}
+
+        <div className="pdf-toolbar" role="toolbar" aria-label="PDF controls">
+          <button className="btn-icon" type="button" disabled aria-label="Zoom out">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button className="btn-icon" type="button" disabled aria-label="Zoom in">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
       </div>
 
-      {/* Body */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        {/* PDF area (placeholder until pdf.js) */}
-        <div
-          style={{
-            flex: compileState.status === "done" && !compileState.result.success ? "0 0 40%" : 1,
-            background: "#f5f5f5",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            overflow: "hidden",
-          }}
-        >
+      <div className="pdf-body" style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="pdf-placeholder" style={{ flex: compileState.status === "done" && !compileState.result.success ? "0 0 40%" : 1 }}>
           {compileState.status === "idle" && (
-            <p style={{ margin: 0, color: "#888", fontSize: 13 }}>
-              Press <strong>Compile</strong> to build the PDF.
-            </p>
+            <>
+              <svg className="pdf-placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="8" y1="13" x2="16" y2="13" />
+                <line x1="8" y1="17" x2="13" y2="17" />
+                <line x1="8" y1="9" x2="11" y2="9" />
+              </svg>
+              <p className="pdf-placeholder-text">
+                Compile your document to see a live preview here
+              </p>
+              <span className="pdf-placeholder-hint">
+                <kbd className="kbd">⌘</kbd>
+                <kbd className="kbd">B</kbd>
+                <span>to compile</span>
+              </span>
+            </>
           )}
           {compileState.status === "compiling" && (
-            <p style={{ margin: 0, color: "#888", fontSize: 13 }}>Compiling…</p>
+            <p className="pdf-placeholder-text">Compiling…</p>
           )}
           {compileState.status === "done" && compileState.result.success && (
-            <p style={{ margin: 0, color: "#555", fontSize: 13, textAlign: "center", padding: 16 }}>
-              PDF compiled successfully.
-              <br />
+            <div style={{ textAlign: "center", padding: 16 }}>
+              <p className="pdf-placeholder-text">PDF compiled successfully.</p>
               <span style={{ fontSize: 11, color: "#999", wordBreak: "break-all" }}>
                 {compileState.result.pdfPath}
               </span>
@@ -122,7 +120,7 @@ export function PDFPanel({ compileState }: PDFPanelProps) {
               <span style={{ fontSize: 11, color: "#aaa" }}>
                 (pdf.js rendering coming soon)
               </span>
-            </p>
+            </div>
           )}
           {compileState.status === "done" && !compileState.result.success && (
             <p style={{ margin: 0, color: "#c0392b", fontSize: 13 }}>
@@ -131,14 +129,13 @@ export function PDFPanel({ compileState }: PDFPanelProps) {
           )}
         </div>
 
-        {/* Error / warning list */}
         {compileState.status === "done" && compileState.result.errors.length > 0 && (
           <div
             style={{
               flex: 1,
               overflow: "auto",
-              borderTop: "1px solid #e0e0e0",
-              background: "#fff",
+              borderTop: "1px solid var(--border-color, #e0e0e0)",
+              background: "var(--bg-primary, #fff)",
               minHeight: 0,
             }}
           >
@@ -147,8 +144,8 @@ export function PDFPanel({ compileState }: PDFPanelProps) {
                 padding: "4px 12px",
                 fontSize: 11,
                 color: "#999",
-                borderBottom: "1px solid #f0f0f0",
-                background: "#fafafa",
+                borderBottom: "1px solid var(--border-color, #f0f0f0)",
+                background: "var(--bg-secondary, #fafafa)",
               }}
             >
               {errors.length > 0 && `${errors.length} error${errors.length !== 1 ? "s" : ""}`}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import Editor, { type Monaco } from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
 interface EditorPanelProps {
@@ -32,72 +32,57 @@ export function EditorPanel({ content, filePath, onChange, onSave, onRename }: E
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        borderRight: "1px solid #e0e0e0",
-      }}
-    >
-      <div
-        style={{
-          padding: "8px 12px",
-          borderBottom: "1px solid #e0e0e0",
-          fontSize: 13,
-          color: "#333",
-          display: "flex",
-          alignItems: "center",
-          minHeight: 36,
-        }}
-      >
-        {editing ? (
-          <input
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitRename}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commitRename();
-              if (e.key === "Escape") {
+    <div className="panel" role="region" aria-label="Editor">
+      <div className="panel-header">
+        <div className="editor-tab">
+          <svg className="editor-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          {editing ? (
+            <input
+              ref={inputRef}
+              className="editor-tab-input"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitRename}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") {
+                  setDraft(filename);
+                  setEditing(false);
+                }
+              }}
+              aria-label="Rename file"
+            />
+          ) : (
+            <span
+              className="editor-tab-name"
+              onClick={() => {
                 setDraft(filename);
-                setEditing(false);
-              }
-            }}
-            style={{
-              fontSize: 13,
-              fontFamily: "inherit",
-              padding: "2px 6px",
-              border: "1px solid #3b82f6",
-              borderRadius: 4,
-              outline: "none",
-              minWidth: 120,
-            }}
-          />
-        ) : (
-          <span
-            onClick={() => {
-              setDraft(filename);
-              setEditing(true);
-            }}
-            title="Click to rename"
-            style={{
-              cursor: "pointer",
-              padding: "2px 6px",
-              borderRadius: 4,
-              transition: "background 0.12s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f4f6")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          >
-            {filename}
-          </span>
-        )}
+                setEditing(true);
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  setDraft(filename);
+                  setEditing(true);
+                }
+              }}
+              title="Click to rename"
+              aria-label={`File: ${filename}. Press Enter to rename.`}
+            >
+              {filename}
+            </span>
+          )}
+        </div>
       </div>
-      <div style={{ flex: 1, minHeight: 0 }}>
+      <div className="panel-body">
         <Editor
           height="100%"
           language="plaintext"
+          theme="vs-dark"
           value={content}
           onChange={(val) => onChange(val ?? "")}
           options={{
@@ -106,6 +91,12 @@ export function EditorPanel({ content, filePath, onChange, onSave, onRename }: E
             wordWrap: "on",
             lineNumbers: "on",
             scrollBeyondLastLine: false,
+            padding: { top: 12 },
+            renderLineHighlight: "gutter",
+            cursorBlinking: "smooth",
+            smoothScrolling: true,
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace",
+            fontLigatures: true,
           }}
           onMount={(editorInstance: editor.IStandaloneCodeEditor) => {
             editorInstance.addAction({

@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
-
 interface WelcomeScreenProps {
   onOpenFile: () => void;
   onNewFile: () => void;
   onOpenRecent: (filePath: string) => void;
+  onRemoveRecent: (filePath: string) => void;
   recents: string[];
 }
 
@@ -11,59 +10,103 @@ export function WelcomeScreen({
   onOpenFile,
   onNewFile,
   onOpenRecent,
+  onRemoveRecent,
   recents,
 }: WelcomeScreenProps) {
-  const [recentFiles, setRecentFiles] = useState<string[]>([]);
 
-  useEffect(() => {
-    setRecentFiles(recents);
-  }, [recents]);
+  const handleRemove = (e: React.MouseEvent, filePath: string) => {
+    e.stopPropagation();
+    onRemoveRecent(filePath);
+  };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Intellitex</h1>
-        <p style={styles.subtitle}>A LaTeX editor with an AI assistant</p>
+    <div className="welcome" role="main" aria-label="Welcome to IntelliTex">
+      <div className="welcome-card">
+        <img className="welcome-logo" src="/icons/logo.png" alt="IntelliTex" />
 
-        <div style={styles.actions}>
+        <h1 className="welcome-title">IntelliTex</h1>
+        <p className="welcome-subtitle">
+          AI-powered LaTeX editor for crafting standout resumes
+        </p>
+
+        <div className="welcome-actions">
           <button
             type="button"
-            style={styles.primaryButton}
+            className="welcome-btn"
             onClick={onOpenFile}
+            aria-label="Open an existing LaTeX file"
           >
-            <span style={styles.buttonIcon}>📂</span>
+            <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
             Open File
           </button>
           <button
             type="button"
-            style={styles.primaryButton}
+            className="welcome-btn"
             onClick={onNewFile}
+            aria-label="Create a new LaTeX file"
           >
-            <span style={styles.buttonIcon}>📄</span>
+            <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
             New File
           </button>
         </div>
 
-        {recentFiles.length > 0 && (
-          <div style={styles.recentsSection}>
-            <h3 style={styles.recentsTitle}>Recent Files</h3>
-            <ul style={styles.recentsList}>
-              {recentFiles.map((filePath) => (
-                <li key={filePath} style={styles.recentsItem}>
+        {recents.length > 0 && (
+          <div className="welcome-recents">
+            <h3 className="welcome-recents-title">Recent</h3>
+            <ul className="welcome-recents-list" role="list">
+              {recents.map((filePath) => (
+                <li key={filePath} className="welcome-recent-item">
                   <button
                     type="button"
-                    style={styles.recentButton}
+                    className="welcome-recent-btn"
                     onClick={() => onOpenRecent(filePath)}
                     title={filePath}
+                    aria-label={`Open ${filePath.split("/").pop() || filePath}`}
                   >
-                    {filePath.split("/").pop() || filePath}
-                    <span style={styles.recentPath}>{shortenPath(filePath)}</span>
+                    <svg className="welcome-recent-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <span className="welcome-recent-name">
+                      {filePath.split("/").pop() || filePath}
+                    </span>
+                    <span className="welcome-recent-path">{shortenPath(filePath)}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="welcome-recent-remove"
+                    onClick={(e) => handleRemove(e, filePath)}
+                    aria-label={`Remove ${filePath.split("/").pop() || filePath} from recents`}
+                    title="Remove from recents"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
                   </button>
                 </li>
               ))}
             </ul>
           </div>
         )}
+
+        <div className="welcome-hint" aria-label="Keyboard shortcuts">
+          <span className="welcome-hint-item">
+            <kbd className="kbd">⌘</kbd><kbd className="kbd">O</kbd>
+            <span>Open</span>
+          </span>
+          <span className="welcome-hint-item">
+            <kbd className="kbd">⌘</kbd><kbd className="kbd">N</kbd>
+            <span>New</span>
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -74,97 +117,3 @@ function shortenPath(fullPath: string): string {
   if (parts.length <= 3) return fullPath;
   return ".../" + parts.slice(-3).join("/");
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    height: "100%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "#f8f9fa",
-  },
-  card: {
-    textAlign: "center",
-    maxWidth: 480,
-    width: "100%",
-    padding: "48px 32px",
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: 700,
-    margin: 0,
-    color: "#1a1a1a",
-    letterSpacing: "-0.02em",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#6b7280",
-    marginTop: 8,
-    marginBottom: 40,
-  },
-  actions: {
-    display: "flex",
-    gap: 12,
-    justifyContent: "center",
-  },
-  primaryButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "12px 28px",
-    fontSize: 15,
-    fontWeight: 500,
-    border: "1px solid #d1d5db",
-    borderRadius: 8,
-    background: "#ffffff",
-    color: "#1a1a1a",
-    cursor: "pointer",
-    transition: "background 0.15s, border-color 0.15s",
-    fontFamily: "inherit",
-  },
-  buttonIcon: {
-    fontSize: 18,
-  },
-  recentsSection: {
-    marginTop: 48,
-    textAlign: "left" as const,
-  },
-  recentsTitle: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#6b7280",
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.05em",
-    marginBottom: 8,
-  },
-  recentsList: {
-    listStyle: "none",
-    margin: 0,
-    padding: 0,
-  },
-  recentsItem: {
-    margin: 0,
-  },
-  recentButton: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    padding: "10px 12px",
-    fontSize: 14,
-    border: "none",
-    borderRadius: 6,
-    background: "transparent",
-    color: "#1a1a1a",
-    cursor: "pointer",
-    textAlign: "left" as const,
-    fontFamily: "inherit",
-    transition: "background 0.12s",
-  },
-  recentPath: {
-    fontSize: 12,
-    color: "#9ca3af",
-    marginLeft: 12,
-    flexShrink: 0,
-  },
-};
