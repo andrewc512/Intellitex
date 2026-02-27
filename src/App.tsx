@@ -4,6 +4,7 @@ import { EditorPanel } from "./panels/EditorPanel";
 import { PDFPanel } from "./panels/PDFPanel";
 import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
+import { useTheme } from "./hooks/useTheme";
 import type { CompileStatus } from "./compiler/types";
 
 type PanelId = "editor" | "pdf" | "agent";
@@ -20,6 +21,7 @@ function App() {
   const [compileState, setCompileState] = useState<CompileStatus>({ status: "idle" });
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(["editor", "pdf", "agent"]);
   const [hiddenPanels, setHiddenPanels] = useState<Set<PanelId>>(new Set());
+  const { theme, toggleTheme } = useTheme();
 
   const togglePanel = useCallback((id: PanelId) => {
     setHiddenPanels((prev) => {
@@ -61,6 +63,14 @@ function App() {
 
   const handleNewFile = useCallback(async () => {
     const result = await window.electronAPI.newFile();
+    if (!result) return;
+    contentRef.current = result.content;
+    setOpenFile(result);
+    setCompileState({ status: "idle" });
+  }, []);
+
+  const handleNewItekFile = useCallback(async () => {
+    const result = await window.electronAPI.newItekFile();
     if (!result) return;
     contentRef.current = result.content;
     setOpenFile(result);
@@ -133,9 +143,12 @@ function App() {
       <WelcomeScreen
         onOpenFile={handleOpenFile}
         onNewFile={handleNewFile}
+        onNewItekFile={handleNewItekFile}
         onOpenRecent={handleOpenRecent}
         onRemoveRecent={handleRemoveRecent}
         recents={recents}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     );
   }
@@ -189,6 +202,24 @@ function App() {
             </button>
           ))}
 
+          <button
+            className="theme-toggle"
+            type="button"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            )}
+          </button>
+
           <div className="header-separator" aria-hidden="true" />
 
           <button
@@ -218,6 +249,7 @@ function App() {
                   <EditorPanel
                     content={openFile.content}
                     filePath={openFile.filePath}
+                    theme={theme}
                     onChange={handleEditorChange}
                     onSave={handleSave}
                     onRename={handleRename}

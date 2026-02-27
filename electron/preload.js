@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openPath: (filePath) => ipcRenderer.invoke("file:openPath", filePath),
   chooseDirectory: () => ipcRenderer.invoke("file:chooseDirectory"),
   newFile: () => ipcRenderer.invoke("file:new"),
+  newItekFile: () => ipcRenderer.invoke("file:newItek"),
   getRecents: () => ipcRenderer.invoke("file:getRecents"),
   removeRecent: (filePath) => ipcRenderer.invoke("file:removeRecent", filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke("file:save", filePath, content),

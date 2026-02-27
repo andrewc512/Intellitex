@@ -1,0 +1,60 @@
+@resume Jayden Tan
+
+#socials
+  number: 9169061635
+  email: <jaytan3966@gmail.com>
+  linkedin: <https://linkedin.com/in/jaydentan1206>
+  github: <https://github.com/jaytan3966>
+  website: <https://jaydentan.vercel.app>
+
+#education
+  school: "UC Santa Barbara"
+  loc: "Santa Barbara, CA"
+  degree: "B.S. Computer Science"
+  gpa: 3.87
+  grad: "June 2027"
+  courses: "Data Structures, Algorithms, Computer Architecture"
+
+#experience
+  company ConstructWise
+    role: "Software Engineering Intern"
+    loc: "San Francisco, CA"
+    date: "June 2025 – Sep. 2025"
+    * Collaborated on full-stack features using NextJS, TailwindCSS, Django REST Framework
+    * Built AI-powered cost estimation tool with Claude API, achieving 96% accuracy
+    * Automated document extraction pipeline, reducing manual data entry by 70%
+
+  company UCSB Office of the Student Advocate
+    role: "Software Developer"
+    loc: "Santa Barbara, CA"
+    date: "Sep. 2025 – Present"
+    * Developing GoGaucho, serving 10,000+ monthly active users
+    * Collaborated in biweekly Agile sprints with a team of 4 developers
+    * Integrated Vue.js click-to-redirect for course schedule navigation
+
+#skills
+  languages: Python, C++, Java, JavaScript, TypeScript, SQL, HTML, CSS
+  frameworks: NextJS, ReactJS, ExpressJS, TailwindCSS, Flask, Django
+  technologies: PostgreSQL, AWS Lambda, DynamoDB, MongoDB, Supabase, Redis, Git
+
+#projects
+  project Artistle
+    stack: "NextJS, TailwindCSS, Auth0, AWS Lambda, DynamoDB, Redis, Flask"
+    date: "June 2025 – July 2025"
+    * Built Wordle-inspired Spotify artist guessing game with serverless AWS backend
+    * Reduced API calls by 40% with Redis caching, enabling automatic scaling
+
+  project UCSB-Dine-In
+    stack: "NextJS, NodeJS, TailwindCSS, Supabase, UCSB Student Developer API"
+    date: "Jan. 2025"
+    * Displays 200+ real-time food items across 4 dining halls via UCSB API
+    * Led development while mentoring 3 junior teammates in full-stack fundamentals
+
+#leadership
+  organization SB Hacks
+    role: "Development Officer"
+    loc: "Santa Barbara, CA"
+    date: "August 2025 – Present"
+    * Redesigned NextJS/TailwindCSS website with GitHub Actions CI/CD for 450+ participants
+    * Built Firebase backend for secure participant data management
+    * Translated Figma designs into responsive NextJS components

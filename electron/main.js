@@ -114,7 +114,7 @@ ipcMain.handle("dialog:openFile", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     properties: ["openFile"],
     filters: [
-      { name: "LaTeX Files", extensions: ["tex", "bib", "cls", "sty"] },
+      { name: "IntelliTex Files", extensions: ["itek", "tex", "bib", "cls", "sty"] },
       { name: "All Files", extensions: ["*"] },
     ],
   });
@@ -135,7 +135,7 @@ ipcMain.handle("file:new", async () => {
   const { canceled, filePath: rawPath } = await dialog.showSaveDialog({
     title: "New IntelliTex File",
     defaultPath: "untitled.tex",
-    filters: [{ name: "IntelliTex Files", extensions: ["tex"] }],
+    filters: [{ name: "LaTeX Files", extensions: ["tex"] }],
   });
   if (canceled || !rawPath) return null;
 
@@ -154,13 +154,65 @@ ipcMain.handle("file:new", async () => {
   return { filePath, content: template };
 });
 
+const ITEK_TEMPLATE = `@resume Your Name
+
+#socials
+  number: 1234567890
+  email: <your@email.com>
+  linkedin: <https://linkedin.com/in/yourprofile>
+  github: <https://github.com/yourusername>
+
+#education
+  school: "University Name"
+  loc: "City, State"
+  degree: "B.S. Your Major"
+  gpa: 4.00
+  grad: "Month Year"
+
+#experience
+  company Company Name
+    role: "Your Role"
+    loc: "City, State"
+    date: "Start – End"
+    * Your accomplishment here
+
+#skills
+  languages: Language1, Language2, Language3
+  frameworks: Framework1, Framework2
+  technologies: Tool1, Tool2, Tool3
+
+#projects
+  project Project Name
+    stack: "Tech1, Tech2, Tech3"
+    date: "Month Year"
+    * What you built and its impact
+`;
+
+ipcMain.handle("file:newItek", async () => {
+  const { canceled, filePath: rawPath } = await dialog.showSaveDialog({
+    title: "New itek Resume",
+    defaultPath: "resume.itek",
+    filters: [{ name: "itek Resume", extensions: ["itek"] }],
+  });
+  if (canceled || !rawPath) return null;
+
+  const filePath = rawPath.endsWith(".itek") ? rawPath : rawPath + ".itek";
+  await fs.writeFile(filePath, ITEK_TEMPLATE, "utf-8");
+  await addRecent(filePath);
+  return { filePath, content: ITEK_TEMPLATE };
+});
+
 ipcMain.handle("file:save", async (_event, filePath, content) => {
   await fs.writeFile(filePath, content, "utf-8");
 });
 
 ipcMain.handle("file:rename", async (_event, oldPath, newName) => {
   const dir = path.dirname(oldPath);
-  const newPath = path.join(dir, newName.endsWith(".tex") ? newName : newName + ".tex");
+  const oldExt = path.extname(oldPath).toLowerCase();
+  const hasKnownExt = [".tex", ".itek", ".bib", ".cls", ".sty"].includes(
+    path.extname(newName).toLowerCase()
+  );
+  const newPath = path.join(dir, hasKnownExt ? newName : newName + oldExt);
 
   if (newPath === oldPath) return oldPath;
 

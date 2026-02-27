@@ -6,4 +6,5 @@ release
 .env
 .env.*
 *.log
+*.pdf
 .claude/

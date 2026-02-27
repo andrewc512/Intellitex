@@ -4,6 +4,7 @@ interface ElectronAPI {
   openFile: () => Promise<{ filePath: string; content: string } | null>;
   openPath: (filePath: string) => Promise<{ filePath: string; content: string }>;
   newFile: () => Promise<{ filePath: string; content: string } | null>;
+  newItekFile: () => Promise<{ filePath: string; content: string } | null>;
   saveFile: (filePath: string, content: string) => Promise<void>;
   renameFile: (oldPath: string, newName: string) => Promise<string>;
   getRecents: () => Promise<string[]>;
