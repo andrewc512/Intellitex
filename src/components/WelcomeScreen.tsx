@@ -1,6 +1,7 @@
 interface WelcomeScreenProps {
   onOpenFile: () => void;
   onNewFile: () => void;
+  onNewItekFile: () => void;
   onOpenRecent: (filePath: string) => void;
   onRemoveRecent: (filePath: string) => void;
   recents: string[];
@@ -9,6 +10,7 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({
   onOpenFile,
   onNewFile,
+  onNewItekFile,
   onOpenRecent,
   onRemoveRecent,
   recents,
@@ -54,6 +56,21 @@ export function WelcomeScreen({
               <line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
             New File
+          </button>
+          <button
+            type="button"
+            className="welcome-btn welcome-btn--accent"
+            onClick={onNewItekFile}
+            aria-label="Create a new itek resume"
+          >
+            <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+              <line x1="9" y1="16" x2="13" y2="16"/>
+            </svg>
+            New Resume
+            <span className="welcome-btn-badge">.itek</span>
           </button>
         </div>
 

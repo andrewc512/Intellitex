@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import Editor from "@monaco-editor/react";
+import Editor, { type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 
 interface EditorPanelProps {
@@ -13,8 +13,42 @@ interface EditorPanelProps {
   onMoveRight?: () => void;
 }
 
+function getEditorLanguage(filePath: string | null): string {
+  if (!filePath) return "plaintext";
+  if (filePath.endsWith(".itek")) return "itek";
+  return "plaintext";
+}
+
+let itekRegistered = false;
+
+function registerItekLanguage(monaco: Monaco) {
+  if (itekRegistered) return;
+  itekRegistered = true;
+
+  try {
+    monaco.languages.register({ id: "itek" });
+    monaco.languages.setMonarchTokensProvider("itek", {
+      tokenizer: {
+        root: [
+          [/^@resume\b.*/, "keyword"],
+          [/^##\s+.*/, "type.identifier"],
+          [/^#\w+/, "keyword"],
+          [/^\s*\*\s/, "keyword.operator"],
+          [/^\s*[\w]+(?=:)/, "variable"],
+          [/"[^"]*"/, "string"],
+          [/<[^>]+>/, "string.link"],
+          [/\d+\.?\d*/, "number"],
+        ],
+      },
+    });
+  } catch {
+    // fall back silently — editor still works as plaintext
+  }
+}
+
 export function EditorPanel({ content, filePath, onChange, onSave, onRename, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
   const filename = filePath ? filePath.split("/").pop()! : "Untitled.tex";
+  const language = getEditorLanguage(filePath);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(filename);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,10 +135,11 @@ export function EditorPanel({ content, filePath, onChange, onSave, onRename, onC
       <div className="panel-body">
         <Editor
           height="100%"
-          language="plaintext"
+          language={language}
           theme="vs-dark"
           value={content}
           onChange={(val) => onChange(val ?? "")}
+          beforeMount={(monaco) => registerItekLanguage(monaco)}
           options={{
             minimap: { enabled: false },
             fontSize: 14,

@@ -67,6 +67,14 @@ function App() {
     setCompileState({ status: "idle" });
   }, []);
 
+  const handleNewItekFile = useCallback(async () => {
+    const result = await window.electronAPI.newItekFile();
+    if (!result) return;
+    contentRef.current = result.content;
+    setOpenFile(result);
+    setCompileState({ status: "idle" });
+  }, []);
+
   const handleOpenRecent = useCallback(async (filePath: string) => {
     const result = await window.electronAPI.openPath(filePath);
     contentRef.current = result.content;
@@ -133,6 +141,7 @@ function App() {
       <WelcomeScreen
         onOpenFile={handleOpenFile}
         onNewFile={handleNewFile}
+        onNewItekFile={handleNewItekFile}
         onOpenRecent={handleOpenRecent}
         onRemoveRecent={handleRemoveRecent}
         recents={recents}
