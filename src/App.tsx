@@ -71,10 +71,16 @@ function App() {
   }, [openFile?.filePath]);
 
   useEffect(() => {
-    window.electronAPI.onMenuSave(() => handleSave());
-    window.electronAPI.onMenuOpen(() => handleOpenFile());
-    window.electronAPI.onMenuNew(() => handleNewFile());
-    window.electronAPI.onMenuCompile(() => handleCompile());
+    const cleanupSave = window.electronAPI.onMenuSave(() => handleSave());
+    const cleanupOpen = window.electronAPI.onMenuOpen(() => handleOpenFile());
+    const cleanupNew = window.electronAPI.onMenuNew(() => handleNewFile());
+    const cleanupCompile = window.electronAPI.onMenuCompile(() => handleCompile());
+    return () => {
+      cleanupSave();
+      cleanupOpen();
+      cleanupNew();
+      cleanupCompile();
+    };
   }, [handleSave, handleOpenFile, handleNewFile, handleCompile]);
 
   const handleRename = useCallback(

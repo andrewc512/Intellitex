@@ -9,10 +9,10 @@ interface ElectronAPI {
   getRecents: () => Promise<string[]>;
   removeRecent: (filePath: string) => Promise<string[]>;
   chooseDirectory: () => Promise<string | null>;
-  onMenuSave: (callback: () => void) => void;
-  onMenuOpen: (callback: () => void) => void;
-  onMenuNew: (callback: () => void) => void;
-  onMenuCompile: (callback: () => void) => void;
+  onMenuSave: (callback: () => void) => () => void;
+  onMenuOpen: (callback: () => void) => () => void;
+  onMenuNew: (callback: () => void) => () => void;
+  onMenuCompile: (callback: () => void) => () => void;
   compileFile: (filePath: string) => Promise<CompileResult>;
   readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
 }

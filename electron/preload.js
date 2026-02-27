@@ -9,10 +9,22 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeRecent: (filePath) => ipcRenderer.invoke("file:removeRecent", filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke("file:save", filePath, content),
   renameFile: (oldPath, newName) => ipcRenderer.invoke("file:rename", oldPath, newName),
-  onMenuSave: (callback) => ipcRenderer.on("menu:save", callback),
-  onMenuOpen: (callback) => ipcRenderer.on("menu:open", callback),
-  onMenuNew: (callback) => ipcRenderer.on("menu:new", callback),
-  onMenuCompile: (callback) => ipcRenderer.on("menu:compile", callback),
+  onMenuSave: (callback) => {
+    ipcRenderer.on("menu:save", callback);
+    return () => ipcRenderer.removeListener("menu:save", callback);
+  },
+  onMenuOpen: (callback) => {
+    ipcRenderer.on("menu:open", callback);
+    return () => ipcRenderer.removeListener("menu:open", callback);
+  },
+  onMenuNew: (callback) => {
+    ipcRenderer.on("menu:new", callback);
+    return () => ipcRenderer.removeListener("menu:new", callback);
+  },
+  onMenuCompile: (callback) => {
+    ipcRenderer.on("menu:compile", callback);
+    return () => ipcRenderer.removeListener("menu:compile", callback);
+  },
   compileFile: (filePath) => ipcRenderer.invoke("compile:file", filePath),
   readPDF: (pdfPath) => ipcRenderer.invoke("pdf:read", pdfPath)
 });
