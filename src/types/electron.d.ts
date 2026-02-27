@@ -12,11 +12,18 @@ interface ElectronAPI {
   onMenuSave: (callback: () => void) => void;
   onMenuOpen: (callback: () => void) => void;
   onMenuNew: (callback: () => void) => void;
+  onMenuCompile: (callback: () => void) => void;
   compileFile: (filePath: string) => Promise<CompileResult>;
   readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 6ed851b (chore(menuShortcuts): add compile shortcut)
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
   }
 }
+
+export {};

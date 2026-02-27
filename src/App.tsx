@@ -58,12 +58,6 @@ function App() {
     await window.electronAPI.saveFile(openFile.filePath, contentRef.current);
   }, [openFile?.filePath]);
 
-  useEffect(() => {
-    window.electronAPI.onMenuSave(() => handleSave());
-    window.electronAPI.onMenuOpen(() => handleOpenFile());
-    window.electronAPI.onMenuNew(() => handleNewFile());
-  }, [handleSave, handleOpenFile, handleNewFile]);
-
   const handleCompile = useCallback(async () => {
     if (!openFile?.filePath) return;
     // Save first so the compiled file is up to date
@@ -72,6 +66,13 @@ function App() {
     const result = await window.electronAPI.compileFile(openFile.filePath);
     setCompileState({ status: "done", result });
   }, [openFile?.filePath]);
+
+  useEffect(() => {
+    window.electronAPI.onMenuSave(() => handleSave());
+    window.electronAPI.onMenuOpen(() => handleOpenFile());
+    window.electronAPI.onMenuNew(() => handleNewFile());
+    window.electronAPI.onMenuCompile(() => handleCompile());
+  }, [handleSave, handleOpenFile, handleNewFile, handleCompile]);
 
   const handleRename = useCallback(
     async (newName: string) => {

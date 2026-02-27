@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onMenuSave: (callback) => ipcRenderer.on("menu:save", callback),
   onMenuOpen: (callback) => ipcRenderer.on("menu:open", callback),
   onMenuNew: (callback) => ipcRenderer.on("menu:new", callback),
+  onMenuCompile: (callback) => ipcRenderer.on("menu:compile", callback),
   compileFile: (filePath) => ipcRenderer.invoke("compile:file", filePath),
   readPDF: (pdfPath) => ipcRenderer.invoke("pdf:read", pdfPath)
 });

@@ -38,6 +38,16 @@ function createMenu( win ) {
           type: "separator",
         },
         {
+          label: "Compile",
+          accelerator: "CmdOrCtrl+B",
+          click: () => {
+            win.webContents.send("menu:compile");
+          },
+        },
+        {
+          type: "separator",
+        },
+        {
           role: "quit",
         }
       ],
