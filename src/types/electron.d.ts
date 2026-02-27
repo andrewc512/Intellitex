@@ -16,10 +16,7 @@ interface ElectronAPI {
   compileFile: (filePath: string) => Promise<CompileResult>;
   readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> 6ed851b (chore(menuShortcuts): add compile shortcut)
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
