@@ -15,6 +15,8 @@ interface ElectronAPI {
   onMenuCompile: (callback: () => void) => () => void;
   compileFile: (filePath: string) => Promise<CompileResult>;
   readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
+  agentProcess: (context: import("../agent/types").AgentContext, userPrompt: string) => Promise<import("../agent/types").AgentResponse>;
+  agentCheckApiKey: () => Promise<boolean>;
 }
 
 declare global {

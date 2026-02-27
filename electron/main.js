@@ -1,7 +1,9 @@
+require("dotenv").config();
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
 const { compile } = require("./compiler");
+const { processAgentRequest, checkApiKey, getApiKey } = require("./agent/index");
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
@@ -221,6 +223,18 @@ ipcMain.handle("file:chooseDirectory", async () => {
   if (canceled || filePaths.length === 0) return null;
   return filePaths[0];
 });
+
+ipcMain.handle("agent:process", async (_event, context, userPrompt) => {
+  const apiKey = getApiKey();
+  if (!apiKey) return { error: "Set the OPENAI_API_KEY environment variable." };
+  try {
+    return await processAgentRequest(context, userPrompt, apiKey);
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle("agent:checkApiKey", () => checkApiKey());
 
 app.whenReady().then(createWindow);
 
