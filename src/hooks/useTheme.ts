@@ -1,13 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 
-export type Theme = "dark" | "light";
+export const THEMES = [
+  { id: "dark", label: "Nighttime" },
+  { id: "light", label: "Light" },
+  { id: "muted", label: "Muted" },
+  { id: "neon", label: "Neon" },
+  { id: "solarized", label: "Solarized" },
+  { id: "rosepine", label: "Rosé Pine" },
+] as const;
+
+export type Theme = (typeof THEMES)[number]["id"];
 
 const STORAGE_KEY = "intellitex-theme";
 
 function getInitialTheme(): Theme {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
+    if (THEMES.some((t) => t.id === stored)) return stored as Theme;
   } catch {
     // localStorage unavailable
   }
@@ -15,7 +24,7 @@ function getInitialTheme(): Theme {
 }
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -27,8 +36,11 @@ export function useTheme() {
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
+    setTheme((prev) => {
+      const idx = THEMES.findIndex((t) => t.id === prev);
+      return THEMES[(idx + 1) % THEMES.length].id;
+    });
   }, []);
 
-  return { theme, toggleTheme } as const;
+  return { theme, setTheme, toggleTheme } as const;
 }

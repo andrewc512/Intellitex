@@ -88,6 +88,130 @@
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
 }
 
+[data-theme="muted"] {
+  --bg-base: #F5F5F4;
+  --bg-surface: #FAFAF9;
+  --bg-elevated: #FFFFFF;
+  --bg-hover: #EEEEEC;
+  --bg-active: #E5E5E3;
+
+  --border-default: #D6D3D1;
+  --border-subtle: #E7E5E4;
+
+  --text-primary: #292524;
+  --text-secondary: #78716C;
+  --text-tertiary: #A8A29E;
+  --text-inverse: #FAFAF9;
+
+  --accent: #57534E;
+  --accent-hover: #44403C;
+  --accent-muted: rgba(87, 83, 78, 0.10);
+  --accent-text: #44403C;
+
+  --success: #6B7280;
+  --success-muted: rgba(107, 114, 128, 0.08);
+  --error: #B91C1C;
+  --error-muted: rgba(185, 28, 28, 0.08);
+  --warning: #A16207;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="neon"] {
+  --bg-base: #0a0a0a;
+  --bg-surface: #111111;
+  --bg-elevated: #1a1a1a;
+  --bg-hover: #222222;
+  --bg-active: #2a2a2a;
+
+  --border-default: #333333;
+  --border-subtle: #222222;
+
+  --text-primary: #f0f0f0;
+  --text-secondary: #00ffcc;
+  --text-tertiary: #666666;
+  --text-inverse: #0a0a0a;
+
+  --accent: #ff00ff;
+  --accent-hover: #cc00cc;
+  --accent-muted: rgba(255, 0, 255, 0.15);
+  --accent-text: #ff66ff;
+
+  --success: #00ff66;
+  --success-muted: rgba(0, 255, 102, 0.15);
+  --error: #ff3333;
+  --error-muted: rgba(255, 51, 51, 0.15);
+  --warning: #ffff00;
+
+  --shadow-sm: 0 1px 4px rgba(255, 0, 255, 0.2);
+  --shadow-md: 0 4px 16px rgba(255, 0, 255, 0.25);
+  --shadow-lg: 0 8px 32px rgba(0, 255, 204, 0.2);
+}
+
+[data-theme="solarized"] {
+  --bg-base: #002b36;
+  --bg-surface: #073642;
+  --bg-elevated: #094552;
+  --bg-hover: #0b5364;
+  --bg-active: #0d6070;
+
+  --border-default: #0b4f5c;
+  --border-subtle: #094050;
+
+  --text-primary: #fdf6e3;
+  --text-secondary: #93a1a1;
+  --text-tertiary: #657b83;
+  --text-inverse: #002b36;
+
+  --accent: #268bd2;
+  --accent-hover: #1e7abf;
+  --accent-muted: rgba(38, 139, 210, 0.15);
+  --accent-text: #5aafea;
+
+  --success: #859900;
+  --success-muted: rgba(133, 153, 0, 0.15);
+  --error: #dc322f;
+  --error-muted: rgba(220, 50, 47, 0.15);
+  --warning: #b58900;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="rosepine"] {
+  --bg-base: #191724;
+  --bg-surface: #1f1d2e;
+  --bg-elevated: #26233a;
+  --bg-hover: #2a2740;
+  --bg-active: #312e47;
+
+  --border-default: #2a2740;
+  --border-subtle: #231f35;
+
+  --text-primary: #e0def4;
+  --text-secondary: #908caa;
+  --text-tertiary: #6e6a86;
+  --text-inverse: #191724;
+
+  --accent: #c4a7e7;
+  --accent-hover: #b593d8;
+  --accent-muted: rgba(196, 167, 231, 0.12);
+  --accent-text: #c4a7e7;
+
+  --success: #9ccfd8;
+  --success-muted: rgba(156, 207, 216, 0.12);
+  --error: #eb6f92;
+  --error-muted: rgba(235, 111, 146, 0.12);
+  --warning: #f6c177;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
 /* ── Reset & Base ──────────────────────────── */
 
 *,
@@ -1226,21 +1350,105 @@ body, #root {
   color: #fff;
 }
 
-/* Theme toggle button */
+/* ── Theme dropdown ──────────────────────── */
 
-.theme-toggle {
-  padding: 6px;
+.theme-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.theme-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  line-height: 1;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.theme-dropdown-trigger:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.theme-dropdown-label {
+  white-space: nowrap;
+}
+
+.theme-dropdown-chevron {
+  transition: transform var(--transition-fast);
+}
+.theme-dropdown-chevron--open {
+  transform: rotate(180deg);
+}
+
+.theme-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  animation: theme-dropdown-in 120ms ease;
+}
+
+@keyframes theme-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.theme-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 12px;
+  font-family: inherit;
+  text-align: left;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-.theme-toggle:hover {
+.theme-dropdown-item:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
+.theme-dropdown-item--active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.theme-dropdown-check {
+  margin-left: auto;
+  color: var(--accent);
+}
+
+/* Swatches — small color preview circles */
+.theme-dropdown-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  flex-shrink: 0;
+}
+.theme-dropdown-swatch--dark      { background: linear-gradient(135deg, #12121a 50%, #8b7cf6 50%); }
+.theme-dropdown-swatch--light     { background: linear-gradient(135deg, #f5f5f7 50%, #7c6ce7 50%); }
+.theme-dropdown-swatch--muted     { background: linear-gradient(135deg, #F5F5F4 50%, #57534E 50%); }
+.theme-dropdown-swatch--neon      { background: linear-gradient(135deg, #0a0a0a 50%, #ff00ff 50%); }
+.theme-dropdown-swatch--solarized { background: linear-gradient(135deg, #002b36 50%, #268bd2 50%); }
+.theme-dropdown-swatch--rosepine  { background: linear-gradient(135deg, #191724 50%, #c4a7e7 50%); }

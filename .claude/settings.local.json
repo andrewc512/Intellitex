@@ -6,7 +6,8 @@
       "Bash(npx tsc:*)",
       "Bash(pkill:*)",
       "Bash(ls:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
