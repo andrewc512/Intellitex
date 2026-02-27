@@ -13,6 +13,20 @@ function createMenu( win ) {
       label: "File",
       submenu: [
         {
+          label: "New File",
+          accelerator: "CmdOrCtrl+N",
+          click: () => {
+            win.webContents.send("menu:new");
+          },
+        },
+        {
+          label: "Open File…",
+          accelerator: "CmdOrCtrl+O",
+          click: () => {
+            win.webContents.send("menu:open");
+          },
+        },
+        {
           label: "Save",
           accelerator: "CmdOrCtrl+S",
           click: () => {
@@ -25,6 +39,18 @@ function createMenu( win ) {
         {
           role: "quit",
         }
+      ],
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" },
+        { role: "selectAll" },
       ],
     },
   ]);
@@ -126,6 +152,31 @@ ipcMain.handle("file:save", async (_event, filePath, content) => {
 ipcMain.handle("file:rename", async (_event, oldPath, newName) => {
   const dir = path.dirname(oldPath);
   const newPath = path.join(dir, newName.endsWith(".tex") ? newName : newName + ".tex");
+
+  if (newPath === oldPath) return oldPath;
+
+  let targetExists = false;
+  try {
+    await fs.access(newPath);
+    targetExists = true;
+  } catch {
+    // file doesn't exist, safe to proceed
+  }
+
+  if (targetExists) {
+    const win = BrowserWindow.getFocusedWindow();
+    const { response } = await dialog.showMessageBox(win, {
+      type: "warning",
+      title: "File already exists",
+      message: `"${path.basename(newPath)}" already exists in this directory.`,
+      detail: "Renaming will replace the existing file. This cannot be undone.",
+      buttons: ["Replace", "Cancel"],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    if (response === 1) return oldPath;
+  }
+
   await fs.rename(oldPath, newPath);
 
   const recents = await readRecents();
@@ -138,6 +189,13 @@ ipcMain.handle("file:rename", async (_event, oldPath, newName) => {
 
 ipcMain.handle("file:getRecents", async () => {
   return readRecents();
+});
+
+ipcMain.handle("file:removeRecent", async (_event, filePath) => {
+  const recents = await readRecents();
+  const updated = recents.filter((p) => p !== filePath);
+  await fs.writeFile(RECENTS_PATH(), JSON.stringify(updated), "utf-8");
+  return updated;
 });
 
 ipcMain.handle("file:chooseDirectory", async () => {

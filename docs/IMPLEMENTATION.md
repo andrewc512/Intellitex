@@ -1,4 +1,4 @@
-# Intellitex: Implementation Approach
+# IntelliTex: Implementation Approach
 
 This document describes the implementation approach: high-level architecture, the three panels and their tech stack, and the agentic workflow.
 
@@ -6,7 +6,7 @@ This document describes the implementation approach: high-level architecture, th
 
 ## High-level architecture (Electron app)
 
-Intellitex is a single-window Electron app. The **main process** (Node.js) owns the LaTeX toolchain, file system, and agent API; the **renderer** (one browser window) hosts the React UI. They communicate via **IPC** (preload exposes a small API to the renderer).
+IntelliTex is a single-window Electron app. The **main process** (Node.js) owns the LaTeX toolchain, file system, and agent API; the **renderer** (one browser window) hosts the React UI. They communicate via **IPC** (preload exposes a small API to the renderer).
 
 ```mermaid
 flowchart TB

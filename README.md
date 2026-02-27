@@ -1,4 +1,4 @@
-# Intellitex
+# IntelliTex
 
 LaTeX IDE with AI agent: editor | PDF preview | agent panel.
 
@@ -32,7 +32,7 @@ npm run electron:build
 ## Project structure
 
 ```
-Intellitex/
+IntelliTex/
 ├── electron/
 │   ├── main.js       # Electron main process, window
 │   └── preload.js    # Preload script (IPC bridge)
