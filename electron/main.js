@@ -196,6 +196,11 @@ ipcMain.handle("compile:file", async (_event, filePath) => {
   return compile(filePath);
 });
 
+ipcMain.handle("pdf:read", async (_event, pdfPath) => {
+  const buffer = await fs.readFile(pdfPath);
+  return buffer;
+});
+
 ipcMain.handle("file:removeRecent", async (_event, filePath) => {
   const recents = await readRecents();
   const updated = recents.filter((p) => p !== filePath);

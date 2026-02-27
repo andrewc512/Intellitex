@@ -13,6 +13,7 @@ interface ElectronAPI {
   onMenuOpen: (callback: () => void) => void;
   onMenuNew: (callback: () => void) => void;
   compileFile: (filePath: string) => Promise<CompileResult>;
+  readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
 }
 
 interface Window {
