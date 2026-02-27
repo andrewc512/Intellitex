@@ -15,7 +15,8 @@ interface ElectronAPI {
   compileFile: (filePath: string) => Promise<CompileResult>;
   readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
 }
-
-interface Window {
-  electronAPI: ElectronAPI;
+declare global {
+  interface Window {
+    electronAPI: ElectronAPI;
+  }
 }
