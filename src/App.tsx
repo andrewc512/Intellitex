@@ -26,6 +26,7 @@ function App() {
     if (result) {
       contentRef.current = result.content;
       setOpenFile(result);
+      setCompileState({ status: "idle" });
     }
   }, []);
 
@@ -35,12 +36,14 @@ function App() {
     const result = await window.electronAPI.newFile(dir);
     contentRef.current = result.content;
     setOpenFile(result);
+    setCompileState({ status: "idle" });
   }, []);
 
   const handleOpenRecent = useCallback(async (filePath: string) => {
     const result = await window.electronAPI.openPath(filePath);
     contentRef.current = result.content;
     setOpenFile(result);
+    setCompileState({ status: "idle" });
   }, []);
 
   const handleRemoveRecent = useCallback(async (filePath: string) => {
