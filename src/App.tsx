@@ -84,6 +84,12 @@ function App() {
     [openFile?.filePath]
   );
 
+  const handleFileEdited = useCallback((editedPath: string, newContent: string) => {
+    if (!openFile || openFile.filePath !== editedPath) return;
+    contentRef.current = newContent;
+    setOpenFile((prev) => (prev ? { ...prev, content: newContent } : null));
+  }, [openFile?.filePath]);
+
   if (!openFile) {
     return (
       <WelcomeScreen
@@ -157,7 +163,18 @@ function App() {
         </Panel>
         <PanelResizeHandle className="resize-handle" aria-label="Resize PDF panel" />
         <Panel defaultSize={25} minSize={15}>
-          <AgentPanel />
+          <AgentPanel
+            filePath={openFile.filePath}
+            content={openFile.content}
+            compileErrors={
+              compileState.status === "done"
+                ? compileState.result.errors
+                    .filter((e) => e.type === "error" && e.line !== null)
+                    .map((e) => ({ file: openFile.filePath ?? "unknown", line: e.line!, message: e.message }))
+                : undefined
+            }
+            onFileEdited={handleFileEdited}
+          />
         </Panel>
       </PanelGroup>
     </div>

@@ -1,7 +1,3 @@
-/**
- * Agent types (placeholder for future IPC / API contracts).
- */
-
 export interface AgentContext {
   filePath?: string;
   content?: string;
@@ -9,8 +5,14 @@ export interface AgentContext {
   compileErrors?: Array<{ file: string; line: number; message: string }>;
 }
 
-export interface AgentEdit {
-  filePath: string;
-  range: { startLine: number; startCol: number; endLine: number; endCol: number };
-  newText: string;
+export interface AgentResponse {
+  message: string;
+  error?: string;
+  /** Files the agent wrote: absolute path → new content. */
+  editedFiles?: Record<string, string>;
+}
+
+export interface AgentMessage {
+  role: "user" | "assistant";
+  content: string;
 }

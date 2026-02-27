@@ -13,5 +13,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onMenuOpen: (callback) => ipcRenderer.on("menu:open", callback),
   onMenuNew: (callback) => ipcRenderer.on("menu:new", callback),
   compileFile: (filePath) => ipcRenderer.invoke("compile:file", filePath),
-  readPDF: (pdfPath) => ipcRenderer.invoke("pdf:read", pdfPath)
+  readPDF: (pdfPath) => ipcRenderer.invoke("pdf:read", pdfPath),
+  agentProcess: (context, userPrompt) => ipcRenderer.invoke("agent:process", context, userPrompt),
+  agentCheckApiKey: () => ipcRenderer.invoke("agent:checkApiKey"),
 });
