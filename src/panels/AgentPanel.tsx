@@ -78,7 +78,10 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
     setThinkingStatus("Analyzing your request...");
 
     const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors };
-    const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt);
+    // Send prior conversation turns so the agent has multi-turn memory.
+    // Filter out requestId since the backend doesn't need it.
+    const history = messages.map(({ role, content: c }) => ({ role, content: c }));
+    const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt, history);
 
     if (res.error) {
       setMessages((prev) => {

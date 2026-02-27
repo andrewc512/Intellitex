@@ -2,10 +2,10 @@ const OpenAI = require('openai');
 const { definitions, executeTool } = require('./tools');
 const { SYSTEM_PROMPT, buildContext } = require('./prompts');
 
-const MODEL = process.env.OPENAI_MODEL || 'gpt-5-mini';
-const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '30000', 10);
-const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '8', 10);
-const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '400', 10);
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
+const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
+const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
+const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '4096', 10);
 
 /**
  * Agentic loop with tool support.
@@ -14,9 +14,9 @@ const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '400'
  * If the model calls tools, executes them and continues until it
  * returns a final response or reaches MAX_ITERATIONS.
  */
-async function runAgent(context, userPrompt, apiKey, onProgress) {
+async function runAgent(context, userPrompt, apiKey, onProgress, history) {
   const progress = typeof onProgress === 'function' ? onProgress : () => {};
-  const messages = buildMessages(context, userPrompt);
+  const messages = buildMessages(context, userPrompt, history);
 
   const editedFiles = {};
 
@@ -40,10 +40,7 @@ async function runAgent(context, userPrompt, apiKey, onProgress) {
 
     for (const tc of assistant.tool_calls) {
       const toolName = tc.function.name;
-      const toolLabel =
-        toolName === 'think'
-          ? 'Thinking...'
-          : `Running ${toolName.replace(/_/g, ' ')}...`;
+      const toolLabel = `Running ${toolName.replace(/_/g, ' ')}...`;
       progress({ type: 'status', message: toolLabel });
       const args = safeParse(tc.function.arguments);
       const result = await executeTool(toolName, args);
@@ -52,7 +49,12 @@ async function runAgent(context, userPrompt, apiKey, onProgress) {
         editedFiles[args.path] = result.newContent;
       }
 
-      messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+      // Send a concise result to the model — strip full file content to avoid
+      // bloating the conversation context and wasting tokens.
+      const toolResponse = { ...result };
+      delete toolResponse.newContent;
+
+      messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResponse) });
     }
   }
 
@@ -75,6 +77,7 @@ async function callOpenAIStream(messages, apiKey, progress) {
         model: MODEL,
         messages,
         tools: definitions,
+        temperature: 0,
         max_completion_tokens: MAX_OUTPUT_TOKENS,
         stream: true,
       },
@@ -155,12 +158,22 @@ function safeParse(value) {
   catch { return {}; }
 }
 
-function buildMessages(context, userPrompt) {
+function buildMessages(context, userPrompt, history) {
   const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
   const dynamicContext = buildContext(context);
   if (dynamicContext && dynamicContext.trim()) {
     messages.push({ role: 'system', content: `Context:\n${dynamicContext}` });
   }
+
+  // Append prior conversation turns so the model has multi-turn memory.
+  if (Array.isArray(history)) {
+    for (const msg of history) {
+      if (msg.role === 'user' || msg.role === 'assistant') {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+    }
+  }
+
   messages.push({ role: 'user', content: userPrompt });
   return messages;
 }

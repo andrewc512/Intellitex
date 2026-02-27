@@ -27,7 +27,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   compileFile: (filePath) => ipcRenderer.invoke("compile:file", filePath),
   readPDF: (pdfPath) => ipcRenderer.invoke("pdf:read", pdfPath),
-  agentProcess: (context, userPrompt) => ipcRenderer.invoke("agent:process", context, userPrompt),
+  agentProcess: (context, userPrompt, history) => ipcRenderer.invoke("agent:process", context, userPrompt, history),
   agentCheckApiKey: () => ipcRenderer.invoke("agent:checkApiKey"),
   onAgentProgress: (callback) => {
     const handler = (_event, status) => callback(status);
