@@ -1,0 +1,104 @@
+{
+  "grammar": {
+    "summary": "itek is a line-oriented, indentation-based language for writing resumes that transpiles to LaTeX.",
+    "constructs": [
+      {
+        "syntax": "@resume <Full Name>",
+        "description": "Document declaration. Must be the first non-empty line."
+      },
+      {
+        "syntax": "#<section>",
+        "description": "Section header (normalized to lowercase). Known sections: socials, education, experience, leadership, skills, projects. Unknown sections render using experience-style layout if they have entries."
+      },
+      {
+        "syntax": "<key>: <value>",
+        "description": "Field. Value can be plain, quoted (\"value\"), or a URL/email wrapped in angle brackets (<url>)."
+      },
+      {
+        "syntax": "company <Name> | project <Name> | organization <Name>",
+        "description": "Entry marker. 'company' for #experience/#leadership, 'project' for #projects, 'organization' for #leadership. A colon after the marker is optional."
+      },
+      {
+        "syntax": "## <Name>",
+        "description": "Generic entry. Works in any section as an alternative to semantic markers."
+      },
+      {
+        "syntax": "* <text>",
+        "description": "Bullet point on an entry."
+      }
+    ]
+  },
+  "sections": {
+    "socials": {
+      "description": "Contact info rendered in the header. No entries, only fields.",
+      "fields": {
+        "number": "Phone number. Auto-formatted to (XXX) XXX-XXXX if exactly 10 digits.",
+        "email": "Email address. Wrap in <> for mailto link: email: <user@example.com>",
+        "linkedin": "LinkedIn URL. Wrap in <> for hyperlink.",
+        "github": "GitHub URL. Wrap in <> for hyperlink.",
+        "website": "Personal website URL. Wrap in <> for hyperlink.",
+        "portfolio": "Portfolio URL. Wrap in <> for hyperlink."
+      },
+      "entryMarkers": [],
+      "example": "#socials\n  number: 1234567890\n  email: <john@example.com>\n  linkedin: <https://linkedin.com/in/john>\n  github: <https://github.com/john>"
+    },
+    "education": {
+      "description": "Education section. Can use entries (## <School>) or flat fields directly under the section.",
+      "fields": {
+        "school": "School name (only used in flat mode, otherwise the entry name is the school).",
+        "loc": "Location. Alias: location.",
+        "degree": "Degree description.",
+        "gpa": "GPA. Appended to degree line as '; GPA: X.XX'.",
+        "grad": "Graduation date. Alias: graduation.",
+        "courses": "Relevant coursework. Alias: coursework. Rendered as a bullet point."
+      },
+      "entryMarkers": ["## <School Name>"],
+      "example": "#education\n  ## Rice University\n    loc: Houston, TX\n    degree: B.S. Computer Science\n    gpa: 3.8\n    grad: May 2025\n    courses: Data Structures, Algorithms, OS"
+    },
+    "experience": {
+      "description": "Work experience section. Requires entries.",
+      "fields": {
+        "role": "Job title. Alias: title.",
+        "loc": "Location. Alias: location.",
+        "date": "Employment dates."
+      },
+      "entryMarkers": ["company <Name>", "## <Name>"],
+      "example": "#experience\n  company Google\n    role: Software Engineer Intern\n    loc: Mountain View, CA\n    date: Jun 2024 -- Aug 2024\n    * Built a microservice handling 10K requests/sec\n    * Reduced latency by 30% through caching"
+    },
+    "leadership": {
+      "description": "Leadership section. Same layout as experience.",
+      "fields": {
+        "role": "Leadership role/title. Alias: title.",
+        "loc": "Location. Alias: location.",
+        "date": "Dates."
+      },
+      "entryMarkers": ["organization <Name>", "company <Name>", "## <Name>"],
+      "example": "#leadership\n  organization Rice CS Club\n    role: President\n    loc: Houston, TX\n    date: Aug 2023 -- May 2024\n    * Led a team of 15 officers"
+    },
+    "projects": {
+      "description": "Projects section. Uses a compact heading with optional tech stack.",
+      "fields": {
+        "stack": "Technologies used. Aliases: technologies, tech. Rendered in italics next to project name.",
+        "date": "Project dates."
+      },
+      "entryMarkers": ["project <Name>", "## <Name>"],
+      "example": "#projects\n  project ChatApp\n    stack: React, Node.js, WebSocket\n    date: Jan 2024\n    * Real-time messaging with 500+ concurrent users\n    * End-to-end encrypted using libsodium"
+    },
+    "skills": {
+      "description": "Technical skills section. Key-value pairs only, no entries or bullets.",
+      "fields": {
+        "<any key>": "Any key-value pair. Common keys: languages, frameworks, technologies, tools, databases."
+      },
+      "entryMarkers": [],
+      "example": "#skills\n  languages: Python, Java, C++, JavaScript\n  frameworks: React, Flask, Spring Boot\n  tools: Git, Docker, AWS, Linux"
+    }
+  },
+  "specialBehaviors": {
+    "urlParsing": "Values wrapped in <angle brackets> are parsed as URLs/emails. They produce hyperlinks in the PDF.",
+    "phoneFormatting": "Phone numbers with exactly 10 digits are auto-formatted to (XXX) XXX-XXXX.",
+    "latexEscaping": "Special LaTeX characters (\\, &, %, $, #, _, {, }, ~, ^) are auto-escaped in the generated LaTeX.",
+    "genericEntries": "## <Name> works as an entry in any section, as an alternative to semantic markers like 'company' or 'project'.",
+    "unknownSections": "Sections not in the known list are rendered using the experience-style layout if they contain entries.",
+    "indentation": "Indentation is for readability only — the parser trims all lines. Structure is determined by line prefixes, not nesting."
+  }
+}

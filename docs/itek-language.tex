@@ -1,0 +1,175 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codebg}{RGB}{248,248,248}
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0pt,
+  xleftmargin=0.5em,
+  xrightmargin=0.5em,
+  aboveskip=0.75em,
+  belowskip=0.75em
+}
+
+\title{.itek Language Reference (Transpiler-Specified)}
+\author{IntelliTex}
+\date{February 27, 2026}
+
+\begin{document}
+\maketitle
+
+\section*{Scope}
+This document describes the \texttt{.itek} resume language \emph{as implemented in the IntelliTex transpiler and parser}. It reflects actual parsing and rendering behavior, not just the intended syntax.
+
+\section*{High-Level Model}
+\begin{itemize}[leftmargin=1.25em]
+  \item The file is line-oriented; each non-empty line is parsed independently.
+  \item Indentation is ignored (each line is trimmed before parsing).
+  \item A document contains a name and a list of sections in the order they appear.
+  \item Sections contain fields, optional entries, and optional bullets.
+  \item Entries contain fields and bullet points.
+\end{itemize}
+
+\section*{Grammar (Line-Oriented)}
+\begin{lstlisting}
+@resume <Full Name>          document declaration
+
+#<section>                   section header (lowercased by parser)
+
+  <key>: <value>             field with plain value
+  <key>: "<value>"           field with quoted value
+  <key>: <url>               field with URL or email in angle brackets
+
+  company <Name>             entry in #experience or #leadership
+  project <Name>             entry in #projects
+  organization <Name>        entry in #leadership
+  ## <Name>                  generic entry (works in any section)
+
+    <key>: <value>           field on an entry
+    * <text>                 bullet point on an entry
+
+the parser also allows:
+  company: <Name>            with a colon after the marker
+  project: "<Name>"          quoted entry name
+  organization: <Name>
+\end{lstlisting}
+
+\textbf{Notes:}
+\begin{itemize}[leftmargin=1.25em]
+  \item The parser does not enforce that \texttt{@resume} is the first line, but the app expects it to be.
+  \item Multiple \texttt{@resume} lines will overwrite the name; the last one wins.
+  \item Section names and field keys are lowercased by the parser.
+  \item Blank lines are ignored.
+\end{itemize}
+
+\section*{Built-In Sections and Rendering}
+\subsection*{\#socials (header-only)}
+Fields read from this section are rendered into the header line under the name. This section itself is \emph{not} rendered as a standalone section.
+
+Recognized fields (all optional):
+\begin{itemize}[leftmargin=1.25em]
+  \item \texttt{number} (phone)\;\;--\;\;formatted if 10 digits.
+  \item \texttt{email}
+  \item \texttt{linkedin}
+  \item \texttt{github}
+  \item \texttt{website}
+  \item \texttt{portfolio}
+\end{itemize}
+
+If a field uses \texttt{<...>}, the value is treated as a URL (or email) and displayed without the protocol in the header.
+
+\subsection*{\#education}
+Rendered as \texttt{Education}. Each entry is rendered as a \texttt{\textbackslash resumeSubheading}.
+
+Fields used (entry or section-level):
+\begin{itemize}[leftmargin=1.25em]
+  \item \texttt{school} (if no entries exist, this is used as the entry name)
+  \item \texttt{loc} or \texttt{location}
+  \item \texttt{degree}
+  \item \texttt{gpa} (appended to degree if present)
+  \item \texttt{grad} or \texttt{graduation}
+  \item \texttt{courses} or \texttt{coursework} (rendered as a bullet under the entry)
+\end{itemize}
+
+\subsection*{\#experience and \#leadership}
+Rendered using the same layout. Each entry uses:
+\begin{itemize}[leftmargin=1.25em]
+  \item Entry name (company/organization/\#\# name)
+  \item \texttt{loc} or \texttt{location}
+  \item \texttt{role} or \texttt{title}
+  \item \texttt{date}
+  \item Bullet points (\texttt{* ...})
+\end{itemize}
+
+\subsection*{\#projects}
+Each entry uses:
+\begin{itemize}[leftmargin=1.25em]
+  \item Entry name
+  \item \texttt{stack} or \texttt{technologies} or \texttt{tech}
+  \item \texttt{date}
+  \item Bullet points
+\end{itemize}
+
+\subsection*{\#skills}
+Rendered as \texttt{Technical Skills}. All key/value pairs in the section are emitted. Keys are capitalized and each item is printed on its own line.
+
+\subsection*{Unknown Sections}
+If a section type is not recognized but it has entries, it is rendered using the experience-style layout with the section title capitalized. If it has no entries, it is omitted from output.
+
+\section*{Parsing Rules and Edge Cases}
+\begin{itemize}[leftmargin=1.25em]
+  \item \textbf{Entry markers:} \texttt{company}, \texttt{project}, \texttt{organization} can be used with a space or a colon (e.g. \texttt{company Foo} or \texttt{company: Foo}).
+  \item \textbf{Generic entries:} \texttt{\#\# <Name>} is valid in any section and does not imply any semantics beyond entry creation.
+  \item \textbf{Bullets:} Bullets attach to the most recent entry. If no entry exists, bullets attach to the section, but section-level bullets are not rendered by the current transpiler.
+  \item \textbf{URL fields:} Values wrapped in \texttt{<...>} are stored as \texttt{\{text, url\}}. In most sections this behaves like a plain string; in \texttt{\#socials} it is used to create links.
+  \item \textbf{Escaping:} The transpiler escapes LaTeX special characters (\texttt{\textbackslash}, \texttt{\&}, \texttt{\%}, \texttt{\$}, \texttt{\#}, \texttt{\_}, \texttt{\{}, \texttt{\}}, \texttt{\~}, \texttt{\^}).
+\end{itemize}
+
+\section*{Minimal Example}
+\begin{lstlisting}
+@resume Jane Doe
+
+#socials
+  email: <jane@example.com>
+  github: <https://github.com/janedoe>
+
+#education
+  school: "State University"
+  degree: "B.S. Computer Science"
+  grad: "May 2026"
+
+#experience
+  company Example Corp
+    role: "Software Engineer"
+    loc: "Remote"
+    date: "Jun 2024 - Present"
+    * Built internal tools that reduced manual work by 40%
+\end{lstlisting}
+
+\section*{Transpilation Output Summary}
+The transpiler emits a LaTeX resume using a fixed template (Jake's-Resume style). It always includes:
+\begin{itemize}[leftmargin=1.25em]
+  \item A preamble with common resume packages (\texttt{fullpage}, \texttt{titlesec}, \texttt{enumitem}, \texttt{hyperref}, etc.).
+  \item A centered header with the name and socials line.
+  \item Rendered sections in the order they appear in the source (excluding \texttt{\#socials}).
+\end{itemize}
+
+\section*{Source of Truth}
+All behavior in this document is derived from:
+\begin{itemize}[leftmargin=1.25em]
+  \item \texttt{electron/itek/parser.js}
+  \item \texttt{electron/itek/transpiler.js}
+  \item \texttt{examples/jayden-tan.itek}
+  \item \texttt{electron/agent/prompts.js}
+\end{itemize}
+
+\end{document}
