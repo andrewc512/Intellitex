@@ -2,12 +2,14 @@ const readFile = require('./read-file');
 const strReplace = require('./str-replace');
 const writeFile = require('./write-file');
 const compileFile = require('./compile');
+const think = require('./think');
 
-const _tools = [readFile, strReplace, writeFile, compileFile];
+const _tools = [think, readFile, strReplace, writeFile, compileFile];
 
 const definitions = _tools.map((t) => t.definition);
 
 const _executors = {
+  think: think.execute,
   read_file: readFile.execute,
   str_replace: strReplace.execute,
   write_file: writeFile.execute,

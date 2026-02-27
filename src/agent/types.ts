@@ -15,6 +15,7 @@ export interface AgentResponse {
 export interface AgentMessage {
   role: "user" | "assistant";
   content: string;
+  requestId?: number;
 }
 
 export type AgentProgress =

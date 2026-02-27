@@ -29,6 +29,7 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const streamingIndexRef = useRef<number | null>(null);
+  const activeRequestIdRef = useRef(0);
 
   useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinkingStatus]);
@@ -50,14 +51,15 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
       }
       if (status.type === "delta") {
         setMessages((prev) => {
+          const requestId = activeRequestIdRef.current;
           if (streamingIndexRef.current === null) {
             streamingIndexRef.current = prev.length;
-            return [...prev, { role: "assistant", content: status.content }];
+            return [...prev, { role: "assistant", content: status.content, requestId }];
           }
           const idx = streamingIndexRef.current;
           if (idx === null || !prev[idx]) return prev;
           const next = [...prev];
-          next[idx] = { ...next[idx], content: next[idx].content + status.content };
+          next[idx] = { ...next[idx], content: next[idx].content + status.content, requestId };
           return next;
         });
       }
@@ -68,6 +70,8 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   const sendMessage = async (prompt: string) => {
     if (!prompt.trim() || isLoading) return;
     streamingIndexRef.current = null;
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
     setInputValue("");
     setIsLoading(true);
@@ -90,17 +94,24 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
           onFileEdited(path, newContent);
         }
       }
+      const requestId = activeRequestIdRef.current;
       setMessages((prev) => {
         if (streamingIndexRef.current !== null) {
           const idx = streamingIndexRef.current;
           streamingIndexRef.current = null;
           const next = [...prev];
           if (next[idx]) {
-            next[idx] = { ...next[idx], content: res.message };
+            next[idx] = { ...next[idx], content: res.message, requestId };
             return next;
           }
         }
-        return [...prev, { role: "assistant", content: res.message }];
+        const last = prev[prev.length - 1];
+        if (last && last.role === "assistant" && last.requestId === requestId) {
+          const next = [...prev];
+          next[next.length - 1] = { ...last, content: res.message, requestId };
+          return next;
+        }
+        return [...prev, { role: "assistant", content: res.message, requestId }];
       });
     }
     setIsLoading(false);
