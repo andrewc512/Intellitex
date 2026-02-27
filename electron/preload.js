@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openFile: () => ipcRenderer.invoke("dialog:openFile"),
   openPath: (filePath) => ipcRenderer.invoke("file:openPath", filePath),
   chooseDirectory: () => ipcRenderer.invoke("file:chooseDirectory"),
-  newFile: (directory) => ipcRenderer.invoke("file:new", directory),
+  newFile: () => ipcRenderer.invoke("file:new"),
   getRecents: () => ipcRenderer.invoke("file:getRecents"),
   removeRecent: (filePath) => ipcRenderer.invoke("file:removeRecent", filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke("file:save", filePath, content),

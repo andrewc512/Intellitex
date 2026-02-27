@@ -1,10 +1,12 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { EditorPanel } from "./panels/EditorPanel";
 import { PDFPanel } from "./panels/PDFPanel";
 import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import type { CompileStatus } from "./compiler/types";
+
+type PanelId = "editor" | "pdf" | "agent";
 
 interface OpenFile {
   filePath: string | null;
@@ -16,6 +18,33 @@ function App() {
   const contentRef = useRef<string>("");
   const [recents, setRecents] = useState<string[]>([]);
   const [compileState, setCompileState] = useState<CompileStatus>({ status: "idle" });
+  const [panelOrder, setPanelOrder] = useState<PanelId[]>(["editor", "pdf", "agent"]);
+  const [hiddenPanels, setHiddenPanels] = useState<Set<PanelId>>(new Set());
+
+  const togglePanel = useCallback((id: PanelId) => {
+    setHiddenPanels((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const movePanel = useCallback((id: PanelId, direction: -1 | 1) => {
+    setPanelOrder((prev) => {
+      const idx = prev.indexOf(id);
+      const target = idx + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
+  }, []);
+
+  const visiblePanels = useMemo(
+    () => panelOrder.filter((id) => !hiddenPanels.has(id)),
+    [panelOrder, hiddenPanels]
+  );
 
   useEffect(() => {
     window.electronAPI.getRecents().then(setRecents);
@@ -31,9 +60,8 @@ function App() {
   }, []);
 
   const handleNewFile = useCallback(async () => {
-    const dir = await window.electronAPI.chooseDirectory();
-    if (!dir) return;
-    const result = await window.electronAPI.newFile(dir);
+    const result = await window.electronAPI.newFile();
+    if (!result) return;
     contentRef.current = result.content;
     setOpenFile(result);
     setCompileState({ status: "idle" });
@@ -134,6 +162,29 @@ function App() {
         <div className="header-spacer" />
 
         <div className="header-actions" role="toolbar" aria-label="Document actions">
+          {(["editor", "agent"] as PanelId[]).map((id) => (
+            <button
+              key={id}
+              className={`btn-icon panel-toggle ${hiddenPanels.has(id) ? "panel-toggle--hidden" : ""}`}
+              type="button"
+              onClick={() => togglePanel(id)}
+              aria-label={`${hiddenPanels.has(id) ? "Show" : "Hide"} ${id} panel`}
+              title={`${hiddenPanels.has(id) ? "Show" : "Hide"} ${id}`}
+            >
+              {id === "editor" ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              )}
+            </button>
+          ))}
+
+          <div className="header-separator" aria-hidden="true" />
+
           <button
             className="btn"
             type="button"
@@ -144,31 +195,67 @@ function App() {
             <img className="btn-img-icon" src="/icons/icon-compile.png" alt="" aria-hidden="true" />
             {compileState.status === "compiling" ? "Compiling…" : "Compile"}
           </button>
-          <button className="btn" type="button" aria-label="Export document">
-            <img className="btn-img-icon" src="/icons/icon-export.png" alt="" aria-hidden="true" />
-            Export
-          </button>
         </div>
       </header>
 
       <PanelGroup direction="horizontal" style={{ flex: 1, minHeight: 0 }}>
-        <Panel defaultSize={35} minSize={20}>
-          <EditorPanel
-            content={openFile.content}
-            filePath={openFile.filePath}
-            onChange={handleEditorChange}
-            onSave={handleSave}
-            onRename={handleRename}
-          />
-        </Panel>
-        <PanelResizeHandle className="resize-handle" aria-label="Resize editor panel" />
-        <Panel defaultSize={40} minSize={20}>
-          <PDFPanel compileState={compileState} />
-        </Panel>
-        <PanelResizeHandle className="resize-handle" aria-label="Resize PDF panel" />
-        <Panel defaultSize={25} minSize={15}>
-          <AgentPanel />
-        </Panel>
+        {visiblePanels.map((id, i) => {
+          const isFirst = i === 0;
+          const isLast = i === visiblePanels.length - 1;
+          const canMoveLeft = !isFirst;
+          const canMoveRight = !isLast;
+
+          const panelContent = (() => {
+            switch (id) {
+              case "editor":
+                return (
+                  <EditorPanel
+                    content={openFile.content}
+                    filePath={openFile.filePath}
+                    onChange={handleEditorChange}
+                    onSave={handleSave}
+                    onRename={handleRename}
+                    onClose={() => togglePanel("editor")}
+                    onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
+                    onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
+                  />
+                );
+              case "pdf":
+                return (
+                  <PDFPanel
+                    compileState={compileState}
+                    onMoveLeft={canMoveLeft ? () => movePanel("pdf", -1) : undefined}
+                    onMoveRight={canMoveRight ? () => movePanel("pdf", 1) : undefined}
+                  />
+                );
+              case "agent":
+                return (
+                  <AgentPanel
+                    onClose={() => togglePanel("agent")}
+                    onMoveLeft={canMoveLeft ? () => movePanel("agent", -1) : undefined}
+                    onMoveRight={canMoveRight ? () => movePanel("agent", 1) : undefined}
+                  />
+                );
+            }
+          })();
+
+          const defaultSizes: Record<PanelId, number> = { editor: 35, pdf: 40, agent: 25 };
+          const minSizes: Record<PanelId, number> = { editor: 20, pdf: 20, agent: 15 };
+
+          return (
+            <Panel key={id} defaultSize={defaultSizes[id]} minSize={minSizes[id]}>
+              {panelContent}
+            </Panel>
+          );
+        }).reduce<React.ReactNode[]>((acc, panel, i) => {
+          if (i > 0) {
+            acc.push(
+              <PanelResizeHandle key={`handle-${i}`} className="resize-handle" aria-label="Resize panel" />
+            );
+          }
+          acc.push(panel);
+          return acc;
+        }, [])}
       </PanelGroup>
     </div>
   );

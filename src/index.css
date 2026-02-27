@@ -333,6 +333,28 @@ html, body, #root {
   border-radius: 2px;
 }
 
+.panel-header-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.panel-header:hover .panel-header-controls {
+  opacity: 1;
+}
+
+.panel-toggle {
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+.panel-toggle--hidden {
+  opacity: 0.4;
+}
+.panel-toggle--hidden:hover {
+  opacity: 0.8;
+}
+
 .panel-body {
   flex: 1;
   min-height: 0;

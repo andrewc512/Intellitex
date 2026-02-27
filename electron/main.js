@@ -129,19 +129,15 @@ ipcMain.handle("file:openPath", async (_event, filePath) => {
   return { filePath, content };
 });
 
-ipcMain.handle("file:new", async (_event, directory) => {
-  let name = "untitled.tex";
-  let counter = 1;
-  while (true) {
-    try {
-      await fs.access(path.join(directory, name));
-      name = `untitled${counter}.tex`;
-      counter++;
-    } catch {
-      break;
-    }
-  }
-  const filePath = path.join(directory, name);
+ipcMain.handle("file:new", async () => {
+  const { canceled, filePath: rawPath } = await dialog.showSaveDialog({
+    title: "New LaTeX File",
+    defaultPath: "untitled.tex",
+    filters: [{ name: "LaTeX Files", extensions: ["tex"] }],
+  });
+  if (canceled || !rawPath) return null;
+
+  const filePath = rawPath.endsWith(".tex") ? rawPath : rawPath + ".tex";
   const template = [
     "\\documentclass{article}",
     "",

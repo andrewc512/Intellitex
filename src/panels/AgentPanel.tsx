@@ -19,7 +19,13 @@ const QUICK_ACTIONS = [
   },
 ];
 
-export function AgentPanel() {
+interface AgentPanelProps {
+  onClose?: () => void;
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
+}
+
+export function AgentPanel({ onClose, onMoveLeft, onMoveRight }: AgentPanelProps) {
   const [inputValue, setInputValue] = useState("");
 
   return (
@@ -27,6 +33,23 @@ export function AgentPanel() {
       <div className="panel-header">
         <img className="panel-header-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
         <span className="panel-header-title">Assistant</span>
+        <div className="panel-header-controls">
+          {onMoveLeft && (
+            <button className="btn-icon" type="button" onClick={onMoveLeft} aria-label="Move panel left" title="Move left">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          )}
+          {onMoveRight && (
+            <button className="btn-icon" type="button" onClick={onMoveRight} aria-label="Move panel right" title="Move right">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
+          )}
+          {onClose && (
+            <button className="btn-icon" type="button" onClick={onClose} aria-label="Close panel" title="Close panel">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="agent-empty" role="status">

@@ -11,6 +11,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 
 interface PDFPanelProps {
   compileState: CompileStatus;
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
 }
 
 function ErrorRow({ err }: { err: CompileError }) {
@@ -31,7 +33,7 @@ function ErrorRow({ err }: { err: CompileError }) {
   );
 }
 
-export function PDFPanel({ compileState }: PDFPanelProps) {
+export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [scale, setScale] = useState(1.0);
@@ -215,6 +217,19 @@ export function PDFPanel({ compileState }: PDFPanelProps) {
             {statusLabel()}
           </span>
         )}
+
+        <div className="panel-header-controls">
+          {onMoveLeft && (
+            <button className="btn-icon" type="button" onClick={onMoveLeft} aria-label="Move panel left" title="Move left">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          )}
+          {onMoveRight && (
+            <button className="btn-icon" type="button" onClick={onMoveRight} aria-label="Move panel right" title="Move right">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
+          )}
+        </div>
 
         <div className="pdf-toolbar" role="toolbar" aria-label="PDF controls">
           {pdf && (

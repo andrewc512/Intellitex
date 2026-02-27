@@ -8,9 +8,12 @@ interface EditorPanelProps {
   onChange: (value: string) => void;
   onSave: () => void;
   onRename: (newName: string) => void;
+  onClose?: () => void;
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
 }
 
-export function EditorPanel({ content, filePath, onChange, onSave, onRename }: EditorPanelProps) {
+export function EditorPanel({ content, filePath, onChange, onSave, onRename, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
   const filename = filePath ? filePath.split("/").pop()! : "Untitled.tex";
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(filename);
@@ -75,6 +78,23 @@ export function EditorPanel({ content, filePath, onChange, onSave, onRename }: E
             >
               {filename}
             </span>
+          )}
+        </div>
+        <div className="panel-header-controls">
+          {onMoveLeft && (
+            <button className="btn-icon" type="button" onClick={onMoveLeft} aria-label="Move panel left" title="Move left">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          )}
+          {onMoveRight && (
+            <button className="btn-icon" type="button" onClick={onMoveRight} aria-label="Move panel right" title="Move right">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 6 15 12 9 18"/></svg>
+            </button>
+          )}
+          {onClose && (
+            <button className="btn-icon" type="button" onClick={onClose} aria-label="Close panel" title="Close panel">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           )}
         </div>
       </div>
