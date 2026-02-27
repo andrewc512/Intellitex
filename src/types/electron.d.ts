@@ -17,7 +17,7 @@ interface ElectronAPI {
   readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
   agentProcess: (context: import("../agent/types").AgentContext, userPrompt: string) => Promise<import("../agent/types").AgentResponse>;
   agentCheckApiKey: () => Promise<boolean>;
-  onAgentProgress: (callback: (status: string) => void) => () => void;
+  onAgentProgress: (callback: (status: import("../agent/types").AgentProgress) => void) => () => void;
 }
 
 declare global {

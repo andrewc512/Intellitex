@@ -16,3 +16,8 @@ export interface AgentMessage {
   role: "user" | "assistant";
   content: string;
 }
+
+export type AgentProgress =
+  | { type: "status"; message: string }
+  | { type: "delta"; content: string }
+  | { type: "reset" };

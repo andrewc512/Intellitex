@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import type { AgentContext, AgentMessage, AgentResponse } from "../agent/types";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
+import type { AgentContext, AgentMessage, AgentProgress, AgentResponse } from "../agent/types";
 
 const QUICK_ACTIONS = [
   { label: "Optimize for ATS", icon: "/icons/icon-ats.png", prompt: "Optimize this resume for ATS." },
@@ -25,19 +28,46 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   const [thinkingStatus, setThinkingStatus] = useState("");
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const streamingIndexRef = useRef<number | null>(null);
 
   useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinkingStatus]);
 
   useEffect(() => {
-    const cleanup = window.electronAPI.onAgentProgress((status: string) => {
-      setThinkingStatus(status);
+    const cleanup = window.electronAPI.onAgentProgress((status: AgentProgress) => {
+      if (status.type === "status") {
+        setThinkingStatus(status.message);
+        return;
+      }
+      if (status.type === "reset") {
+        setMessages((prev) => {
+          if (streamingIndexRef.current === null) return prev;
+          const idx = streamingIndexRef.current;
+          streamingIndexRef.current = null;
+          return prev.filter((_, i) => i !== idx);
+        });
+        return;
+      }
+      if (status.type === "delta") {
+        setMessages((prev) => {
+          if (streamingIndexRef.current === null) {
+            streamingIndexRef.current = prev.length;
+            return [...prev, { role: "assistant", content: status.content }];
+          }
+          const idx = streamingIndexRef.current;
+          if (idx === null || !prev[idx]) return prev;
+          const next = [...prev];
+          next[idx] = { ...next[idx], content: next[idx].content + status.content };
+          return next;
+        });
+      }
     });
     return cleanup;
   }, []);
 
   const sendMessage = async (prompt: string) => {
     if (!prompt.trim() || isLoading) return;
+    streamingIndexRef.current = null;
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
     setInputValue("");
     setIsLoading(true);
@@ -47,6 +77,12 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
     const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt);
 
     if (res.error) {
+      setMessages((prev) => {
+        if (streamingIndexRef.current === null) return prev;
+        const idx = streamingIndexRef.current;
+        streamingIndexRef.current = null;
+        return prev.filter((_, i) => i !== idx);
+      });
       setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${res.error}` }]);
     } else {
       if (res.editedFiles && onFileEdited) {
@@ -54,7 +90,18 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
           onFileEdited(path, newContent);
         }
       }
-      setMessages((prev) => [...prev, { role: "assistant", content: res.message }]);
+      setMessages((prev) => {
+        if (streamingIndexRef.current !== null) {
+          const idx = streamingIndexRef.current;
+          streamingIndexRef.current = null;
+          const next = [...prev];
+          if (next[idx]) {
+            next[idx] = { ...next[idx], content: res.message };
+            return next;
+          }
+        }
+        return [...prev, { role: "assistant", content: res.message }];
+      });
     }
     setIsLoading(false);
     setThinkingStatus("");
@@ -119,7 +166,13 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
           {messages.map((msg, i) => (
             <div key={i} className={`agent-message agent-message-${msg.role}`}>
               {msg.role === "assistant" && <img className="agent-message-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />}
-              <div className="agent-message-content">{msg.content}</div>
+              <div className="agent-message-content">
+                {msg.role === "assistant" ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.content}</ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
+              </div>
             </div>
           ))}
           {isLoading && (

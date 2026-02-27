@@ -687,7 +687,7 @@ html, body, #root {
   line-height: 1.5;
   padding: 8px 12px;
   border-radius: var(--radius-md);
-  white-space: pre-wrap;
+  white-space: normal;
   word-break: break-word;
 }
 .agent-message-assistant .agent-message-content {
@@ -697,6 +697,51 @@ html, body, #root {
 .agent-message-user .agent-message-content {
   background: var(--accent);
   color: #fff;
+  white-space: pre-wrap;
+}
+.agent-message-content p {
+  margin: 0 0 8px;
+}
+.agent-message-content p:last-child {
+  margin-bottom: 0;
+}
+.agent-message-content ul,
+.agent-message-content ol {
+  margin: 6px 0 6px 18px;
+  padding: 0;
+}
+.agent-message-content li {
+  margin: 2px 0;
+}
+.agent-message-content code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 12px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+.agent-message-content pre {
+  background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  overflow-x: auto;
+}
+.agent-message-content pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.agent-message-content a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.agent-message-content blockquote {
+  margin: 6px 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-default);
+  color: var(--text-secondary);
 }
 @keyframes agent-spin {
   to { transform: rotate(360deg); }
