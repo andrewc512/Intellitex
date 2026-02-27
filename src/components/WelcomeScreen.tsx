@@ -42,6 +42,7 @@ export function WelcomeScreen({
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
             </svg>
             Open File
+            <span className="welcome-btn-badge">.tex</span>
           </button>
           <button
             type="button"
@@ -56,6 +57,7 @@ export function WelcomeScreen({
               <line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
             New File
+            <span className="welcome-btn-badge">.tex</span>
           </button>
           <button
             type="button"
@@ -70,7 +72,10 @@ export function WelcomeScreen({
               <line x1="9" y1="16" x2="13" y2="16"/>
             </svg>
             New Resume
-            <span className="welcome-btn-badge">.itek</span>
+            <span className="welcome-btn-badges">
+              <span className="welcome-btn-badge">.itek</span>
+              <span className="welcome-btn-badge welcome-btn-badge--beta">Beta</span>
+            </span>
           </button>
         </div>
 
