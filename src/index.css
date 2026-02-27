@@ -424,8 +424,8 @@ body, #root {
   background: var(--bg-hover);
 }
 .header-brand-icon {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border-radius: 4px;
   object-fit: contain;
 }
