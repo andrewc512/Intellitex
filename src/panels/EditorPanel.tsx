@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
+import type { Theme } from "../hooks/useTheme";
 
 interface EditorPanelProps {
   content: string;
   filePath: string | null;
+  theme: Theme;
   onChange: (value: string) => void;
   onSave: () => void;
   onRename: (newName: string) => void;
@@ -46,7 +48,7 @@ function registerItekLanguage(monaco: Monaco) {
   }
 }
 
-export function EditorPanel({ content, filePath, onChange, onSave, onRename, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
+export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
   const filename = filePath ? filePath.split("/").pop()! : "Untitled.tex";
   const language = getEditorLanguage(filePath);
   const [editing, setEditing] = useState(false);
@@ -136,7 +138,7 @@ export function EditorPanel({ content, filePath, onChange, onSave, onRename, onC
         <Editor
           height="100%"
           language={language}
-          theme="vs-dark"
+          theme={theme === "dark" ? "vs-dark" : "light"}
           value={content}
           onChange={(val) => onChange(val ?? "")}
           beforeMount={(monaco) => registerItekLanguage(monaco)}
