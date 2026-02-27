@@ -1,6 +1,6 @@
 const OpenAI = require('openai');
 const { definitions, executeTool } = require('./tools');
-const { SYSTEM_PROMPT, buildContext } = require('./prompts');
+const { getSystemPrompt, buildContext } = require('./prompts');
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
@@ -159,7 +159,7 @@ function safeParse(value) {
 }
 
 function buildMessages(context, userPrompt, history) {
-  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+  const messages = [{ role: 'system', content: getSystemPrompt(context.filePath) }];
   const dynamicContext = buildContext(context);
   if (dynamicContext && dynamicContext.trim()) {
     messages.push({ role: 'system', content: `Context:\n${dynamicContext}` });
