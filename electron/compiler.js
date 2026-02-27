@@ -2,6 +2,24 @@ const { execFile } = require("child_process");
 const path = require("path");
 const fs = require("fs/promises");
 
+// Common TeX binary locations that GUI apps like Electron don't get in PATH.
+// Ordered by likelihood on macOS / Linux / Windows.
+const TEX_BIN_DIRS = [
+  "/Library/TeX/texbin",                   // MacTeX (macOS, standard)
+  "/usr/local/texlive/2024/bin/universal-darwin",
+  "/usr/local/texlive/2023/bin/universal-darwin",
+  "/usr/local/texlive/2024/bin/x86_64-darwin",
+  "/usr/local/texlive/2023/bin/x86_64-darwin",
+  "/opt/homebrew/bin",                      // Homebrew on Apple Silicon
+  "/usr/local/bin",                         // Homebrew on Intel / Linux
+];
+
+function buildEnv() {
+  const existing = process.env.PATH || "";
+  const extra = TEX_BIN_DIRS.join(":");
+  return { ...process.env, PATH: `${extra}:${existing}` };
+}
+
 /**
  * Parse a pdflatex log for errors and warnings.
  * Returns an array of { message, line, type } objects.
@@ -74,7 +92,7 @@ async function compile(filePath) {
         dir,
         filePath,
       ],
-      { cwd: dir, timeout: 60000, maxBuffer: 5 * 1024 * 1024 },
+      { cwd: dir, timeout: 60000, maxBuffer: 5 * 1024 * 1024, env: buildEnv() },
       async (error, stdout, stderr) => {
         // pdflatex not installed
         if (error && error.code === "ENOENT") {
