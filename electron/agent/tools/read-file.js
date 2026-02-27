@@ -1,7 +1,7 @@
 const fs = require('fs/promises');
 const path = require('path');
 
-const ALLOWED_EXTENSIONS = new Set(['.tex', '.bib', '.cls', '.sty']);
+const ALLOWED_EXTENSIONS = new Set(['.tex', '.bib', '.cls', '.sty', '.itek']);
 
 const definition = {
   type: 'function',

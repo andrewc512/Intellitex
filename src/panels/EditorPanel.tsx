@@ -138,7 +138,7 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
         <Editor
           height="100%"
           language={language}
-          theme={theme === "dark" ? "vs-dark" : "light"}
+          theme={theme === "light" || theme === "muted" ? "light" : "vs-dark"}
           value={content}
           onChange={(val) => onChange(val ?? "")}
           beforeMount={(monaco) => registerItekLanguage(monaco)}
