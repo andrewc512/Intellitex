@@ -2,6 +2,36 @@
 
 LaTeX IDE with AI agent: editor | PDF preview | agent panel.
 
+## Requirements
+
+### LaTeX Distribution
+
+IntelliTex requires `pdflatex` to compile documents.
+
+**macOS:**
+```bash
+# MacTeX (recommended)
+brew install --cask mactex-no-gui
+# or download from https://tug.org/mactex/
+```
+
+**Linux:**
+```bash
+# Debian/Ubuntu
+sudo apt install texlive-latex-base texlive-latex-recommended
+
+# Fedora
+sudo dnf install texlive-scheme-basic
+```
+
+**Windows:**
+- Install [MiKTeX](https://miktex.org/download) or [TeX Live](https://tug.org/texlive/windows.html)
+
+Verify installation:
+```bash
+pdflatex --version
+```
+
 ## Setup
 
 ```bash
