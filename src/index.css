@@ -661,6 +661,65 @@ html, body, #root {
   object-fit: contain;
 }
 
+.agent-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 85%;
+}
+.agent-message-assistant {
+  align-self: flex-start;
+}
+.agent-message-user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.agent-message-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: contain;
+  margin-top: 2px;
+}
+.agent-message-content {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.agent-message-assistant .agent-message-content {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+.agent-message-user .agent-message-content {
+  background: var(--accent);
+  color: #fff;
+}
+@keyframes agent-spin {
+  to { transform: rotate(360deg); }
+}
+.agent-thinking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.agent-thinking-spinner {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+  animation: agent-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+.agent-thinking-text {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-weight: 450;
+}
+
 .agent-input-area {
   padding: 12px;
   border-top: 1px solid var(--border-default);

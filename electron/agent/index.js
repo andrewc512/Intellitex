@@ -1,8 +1,8 @@
 const { runAgent } = require('./runner');
 
-async function processAgentRequest(context, userPrompt, apiKey) {
+async function processAgentRequest(context, userPrompt, apiKey, onProgress) {
   if (!apiKey) throw new Error('OpenAI API key not configured');
-  return runAgent(context, userPrompt, apiKey);
+  return runAgent(context, userPrompt, apiKey, onProgress);
 }
 
 function checkApiKey() {

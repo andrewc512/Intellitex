@@ -10,7 +10,8 @@ const MODEL = 'gpt-4o-mini';
  * If the model calls tools, executes them and makes one follow-up call
  * so the model can summarise what it did. No multi-turn loop for now.
  */
-async function runAgent(context, userPrompt, apiKey) {
+async function runAgent(context, userPrompt, apiKey, onProgress) {
+  const progress = onProgress || (() => {});
   const messages = [
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: `${buildContext(context)}\n\nUser request: ${userPrompt}` },
@@ -18,19 +19,19 @@ async function runAgent(context, userPrompt, apiKey) {
 
   const editedFiles = {};
 
-  // First call — may or may not use tools
+  progress('Analyzing your request...');
   const first = await callOpenAI(messages, apiKey);
   messages.push(first);
 
-  // No tool calls — simple answer, we're done
   if (!first.tool_calls || first.tool_calls.length === 0) {
     return { message: first.content ?? '', editedFiles };
   }
 
-  // Execute every tool the model asked for
   for (const tc of first.tool_calls) {
+    const toolName = tc.function.name;
+    progress(`Running ${toolName.replace(/_/g, ' ')}...`);
     const args = safeParse(tc.function.arguments);
-    const result = await executeTool(tc.function.name, args);
+    const result = await executeTool(toolName, args);
 
     if (result.newContent !== undefined && args.path) {
       editedFiles[args.path] = result.newContent;
@@ -39,7 +40,7 @@ async function runAgent(context, userPrompt, apiKey) {
     messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
   }
 
-  // Follow-up so the model can summarise the tool results
+  progress('Summarizing changes...');
   const second = await callOpenAI(messages, apiKey);
 
   return { message: second.content ?? '', editedFiles };

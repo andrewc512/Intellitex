@@ -22,17 +22,26 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [thinkingStatus, setThinkingStatus] = useState("");
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, []);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinkingStatus]);
+
+  useEffect(() => {
+    const cleanup = window.electronAPI.onAgentProgress((status: string) => {
+      setThinkingStatus(status);
+    });
+    return cleanup;
+  }, []);
 
   const sendMessage = async (prompt: string) => {
     if (!prompt.trim() || isLoading) return;
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
     setInputValue("");
     setIsLoading(true);
+    setThinkingStatus("Analyzing your request...");
 
     const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors };
     const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt);
@@ -48,6 +57,7 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
       setMessages((prev) => [...prev, { role: "assistant", content: res.message }]);
     }
     setIsLoading(false);
+    setThinkingStatus("");
   };
 
   if (hasApiKey === false) {
@@ -113,9 +123,11 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
             </div>
           ))}
           {isLoading && (
-            <div className="agent-message agent-message-assistant">
-              <img className="agent-message-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
-              <div className="agent-message-content agent-loading">Thinking...</div>
+            <div className="agent-thinking" role="status" aria-live="polite">
+              <svg className="agent-thinking-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="50 20" />
+              </svg>
+              <span className="agent-thinking-text">{thinkingStatus}</span>
             </div>
           )}
           <div ref={messagesEndRef} />
