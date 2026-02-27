@@ -131,9 +131,9 @@ ipcMain.handle("file:openPath", async (_event, filePath) => {
 
 ipcMain.handle("file:new", async () => {
   const { canceled, filePath: rawPath } = await dialog.showSaveDialog({
-    title: "New LaTeX File",
+    title: "New IntelliTex File",
     defaultPath: "untitled.tex",
-    filters: [{ name: "LaTeX Files", extensions: ["tex"] }],
+    filters: [{ name: "IntelliTex Files", extensions: ["tex"] }],
   });
   if (canceled || !rawPath) return null;
 

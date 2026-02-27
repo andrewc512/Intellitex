@@ -185,11 +185,17 @@ html, body, #root {
 
 /* ── App Layout ────────────────────────────── */
 
+@keyframes app-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .app-root {
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-base);
+  animation: app-fade-in 0.35s ease both;
 }
 
 /* ── Header ────────────────────────────────── */
@@ -714,6 +720,39 @@ html, body, #root {
 
 /* ── Welcome Screen ────────────────────────── */
 
+@keyframes welcome-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes welcome-glow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: translate(-20%, -40%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-20%, -40%) scale(1.08);
+  }
+}
+
+@keyframes welcome-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 .welcome {
   height: 100%;
   display: flex;
@@ -733,6 +772,7 @@ html, body, #root {
   height: 80%;
   background: radial-gradient(ellipse, var(--accent-muted) 0%, transparent 70%);
   pointer-events: none;
+  animation: welcome-glow 6s ease-in-out infinite;
 }
 
 .welcome-card {
@@ -750,6 +790,7 @@ html, body, #root {
   margin: 0 auto 20px;
   border-radius: 12px;
   object-fit: contain;
+  animation: welcome-logo-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 .welcome-title {
@@ -758,6 +799,8 @@ html, body, #root {
   color: var(--text-primary);
   letter-spacing: -0.03em;
   margin: 0;
+  animation: welcome-fade-up 0.5s ease both;
+  animation-delay: 0.12s;
 }
 
 .welcome-subtitle {
@@ -765,6 +808,8 @@ html, body, #root {
   color: var(--text-secondary);
   margin: 8px 0 0;
   line-height: 1.6;
+  animation: welcome-fade-up 0.5s ease both;
+  animation-delay: 0.22s;
 }
 
 .welcome-actions {
@@ -772,6 +817,8 @@ html, body, #root {
   gap: 10px;
   justify-content: center;
   margin-top: 36px;
+  animation: welcome-fade-up 0.5s ease both;
+  animation-delay: 0.32s;
 }
 
 .welcome-btn {
@@ -787,20 +834,26 @@ html, body, #root {
   background: var(--bg-elevated);
   color: var(--text-primary);
   cursor: pointer;
-  transition: background var(--transition-normal), border-color var(--transition-normal), transform var(--transition-fast);
+  transition: background 200ms ease, border-color 200ms ease, transform 150ms ease, box-shadow 200ms ease;
 }
 .welcome-btn:hover {
   background: var(--bg-hover);
   border-color: var(--text-tertiary);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(139, 124, 246, 0.15);
 }
 .welcome-btn:active {
   transform: translateY(0);
+  box-shadow: none;
 }
 .welcome-btn-icon {
   width: 18px;
   height: 18px;
   color: var(--text-secondary);
+  transition: color 200ms ease;
+}
+.welcome-btn:hover .welcome-btn-icon {
+  color: var(--accent-text);
 }
 
 .btn-img-icon {
@@ -814,6 +867,8 @@ html, body, #root {
 .welcome-recents {
   margin-top: 48px;
   text-align: left;
+  animation: welcome-fade-up 0.5s ease both;
+  animation-delay: 0.42s;
 }
 
 .welcome-recents-title {
@@ -837,7 +892,13 @@ html, body, #root {
   align-items: center;
   border-radius: var(--radius-md);
   transition: background var(--transition-fast);
+  animation: welcome-fade-up 0.4s ease both;
 }
+.welcome-recent-item:nth-child(1) { animation-delay: 0.48s; }
+.welcome-recent-item:nth-child(2) { animation-delay: 0.54s; }
+.welcome-recent-item:nth-child(3) { animation-delay: 0.60s; }
+.welcome-recent-item:nth-child(4) { animation-delay: 0.66s; }
+.welcome-recent-item:nth-child(5) { animation-delay: 0.72s; }
 .welcome-recent-item:hover {
   background: var(--bg-hover);
 }
@@ -907,6 +968,8 @@ html, body, #root {
   gap: 20px;
   font-size: 12px;
   color: var(--text-tertiary);
+  animation: welcome-fade-up 0.5s ease both;
+  animation-delay: 0.52s;
 }
 
 .welcome-hint-item {
