@@ -276,14 +276,14 @@ ipcMain.handle("file:chooseDirectory", async () => {
   return filePaths[0];
 });
 
-ipcMain.handle("agent:process", async (event, context, userPrompt) => {
+ipcMain.handle("agent:process", async (event, context, userPrompt, history) => {
   const apiKey = getApiKey();
   if (!apiKey) return { error: "Set the OPENAI_API_KEY environment variable." };
   const sender = event.sender;
   try {
     return await processAgentRequest(context, userPrompt, apiKey, (status) => {
       sender.send("agent:progress", status);
-    });
+    }, history);
   } catch (err) {
     return { error: err.message };
   }

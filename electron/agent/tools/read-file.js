@@ -27,8 +27,13 @@ async function execute({ path: filePath }) {
     return { error: `File type "${ext}" is not allowed. Only .tex, .bib, .cls, .sty files are supported.` };
   }
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
-    return { content };
+    const raw = await fs.readFile(filePath, 'utf-8');
+    // Include line numbers so the model can use line_replace accurately
+    const content = raw
+      .split('\n')
+      .map((line, i) => `${i + 1}: ${line}`)
+      .join('\n');
+    return { content, totalLines: raw.split('\n').length };
   } catch (err) {
     return { error: `Failed to read file: ${err.message}` };
   }
