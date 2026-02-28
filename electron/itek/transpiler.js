@@ -211,7 +211,7 @@ function preamble(options = {}) {
     "\\raggedright",
     "\\setlength{\\tabcolsep}{0in}",
     "",
-    `\\titleformat{\\section}{\\vspace{${fmtPt(sp.sectionBefore)}pt}\\scshape\\raggedright\\large}{}{0em}{}[\\color{black}\\titlerule\\vspace{${fmtPt(sp.sectionAfter)}pt}]`,
+    `\\titleformat{\\section}{\\vspace{${fmtPt(sp.sectionBefore)}pt}\\scshape\\raggedright\\large\\bfseries}{}{0em}{}[\\color{black}\\titlerule\\vspace{${fmtPt(sp.sectionAfter)}pt}]`,
     "",
     "% ── Resume commands ──",
     `\\newcommand{\\resumeItem}[1]{\\item\\small{#1 \\vspace{${fmtPt(sp.itemAfter)}pt}}}`,
@@ -292,7 +292,7 @@ function renderHeader(doc, options = {}) {
 
 function renderEducation(section) {
   const lines = [];
-  lines.push("\\section{Education}");
+  lines.push("\\section{EDUCATION}");
   lines.push("\\resumeSubHeadingListStart");
 
   const renderEntry = (name, f) => {
@@ -329,7 +329,13 @@ function renderEducation(section) {
 
 function renderExperience(section) {
   const lines = [];
-  lines.push(`\\section{${escapeLatex(capitalize(section.type))}}`);
+  const title =
+    section.type === "experience"
+      ? "EXPERIENCE"
+      : section.type === "leadership"
+      ? "LEADERSHIP"
+      : escapeLatex(capitalize(section.type));
+  lines.push(`\\section{${title}}`);
   lines.push("\\resumeSubHeadingListStart");
 
   for (const entry of section.entries) {
@@ -358,7 +364,7 @@ function renderExperience(section) {
 
 function renderSkills(section) {
   const lines = [];
-  lines.push("\\section{Technical Skills}");
+  lines.push("\\section{TECHNICAL SKILLS}");
   lines.push("\\begin{itemize}[leftmargin=0.15in, label={}]");
   lines.push("  \\small{\\item{");
 
@@ -378,7 +384,11 @@ function renderSkills(section) {
 
 function renderProjects(section) {
   const lines = [];
-  lines.push(`\\section{${escapeLatex(capitalize(section.type))}}`);
+  const title =
+    section.type === "projects"
+      ? "PROJECTS"
+      : escapeLatex(capitalize(section.type));
+  lines.push(`\\section{${title}}`);
   lines.push("\\resumeSubHeadingListStart");
 
   for (const entry of section.entries) {
