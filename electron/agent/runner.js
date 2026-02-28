@@ -1,6 +1,6 @@
 const OpenAI = require('openai');
 const { definitions, executeTool } = require('./tools');
-const { getSystemPrompt, buildContext } = require('./prompts');
+const { getSystemPrompt, buildContext, getRelevantItekReference } = require('./prompts');
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
@@ -21,6 +21,12 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
   const progress = typeof onProgress === 'function' ? onProgress : () => {};
   const messages = buildMessages(context, userPrompt, history);
 
+  // Filter tool definitions based on file type to reduce token overhead
+  const isItek = context.filePath && context.filePath.endsWith('.itek');
+  const toolDefs = isItek
+    ? definitions
+    : definitions.filter((d) => d.function.name !== 'lookup_itek_reference');
+
   const editedFiles = {};
 
   let lastAssistant = null;
@@ -33,7 +39,7 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
         : `Continuing (${step}/${MAX_ITERATIONS})...`;
     progress({ type: 'status', message: status });
 
-    const assistant = await callOpenAIStream(messages, apiKey, progress);
+    const assistant = await callOpenAIStream(messages, toolDefs, apiKey, progress);
     messages.push(assistant);
     lastAssistant = assistant;
 
@@ -74,7 +80,7 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
 
 // ── helpers ──────────────────────────────────────────────────────────
 
-async function callOpenAIStream(messages, apiKey, progress) {
+async function callOpenAIStream(messages, toolDefs, apiKey, progress) {
   const client = new OpenAI({ apiKey });
   let stream;
   try {
@@ -82,7 +88,7 @@ async function callOpenAIStream(messages, apiKey, progress) {
       {
         model: MODEL,
         messages,
-        tools: definitions,
+        tools: toolDefs,
         temperature: 0,
         max_completion_tokens: MAX_OUTPUT_TOKENS,
         stream: true,
@@ -179,15 +185,28 @@ function safeParse(value) {
 }
 
 function buildMessages(context, userPrompt, history) {
-  const messages = [{ role: 'system', content: getSystemPrompt(context.filePath) }];
+  const hasHistory = Array.isArray(history) && history.length > 0;
+  const messages = [{ role: 'system', content: getSystemPrompt(context.filePath, hasHistory) }];
+
+  // Build dynamic context with file content inlined
   const dynamicContext = buildContext(context);
-  if (dynamicContext && dynamicContext.trim()) {
-    messages.push({ role: 'system', content: `Context:\n${dynamicContext}` });
+
+  // For .itek files, inline the relevant section references so the model
+  // doesn't need to call lookup_itek_reference as its first action.
+  const isItek = context.filePath && context.filePath.endsWith('.itek');
+  const itekRef = isItek ? getRelevantItekReference(context.content) : null;
+
+  const contextParts = [];
+  if (dynamicContext && dynamicContext.trim()) contextParts.push(dynamicContext);
+  if (itekRef) contextParts.push(itekRef);
+
+  if (contextParts.length > 0) {
+    messages.push({ role: 'system', content: `Context:\n${contextParts.join('\n\n')}` });
   }
 
   // Append the last N conversation turns so the model has multi-turn memory
   // without unbounded token growth.
-  if (Array.isArray(history)) {
+  if (hasHistory) {
     const eligible = history.filter((m) => m.role === 'user' || m.role === 'assistant');
     const hasSummary = !!context.summary;
     const maxTurns = hasSummary ? MAX_HISTORY_TURNS_SUMMARIZED : MAX_HISTORY_TURNS;
