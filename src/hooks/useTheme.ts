@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 
 export const THEMES = [
-  { id: "dark", label: "Nighttime" },
+  { id: "dark", label: "Nighttime", icon: "moon" as const },
   { id: "light", label: "Light" },
   { id: "muted", label: "Muted" },
-  { id: "neon", label: "Neon" },
+  { id: "neon", label: "Neon", icon: "moon" as const },
   { id: "solarized", label: "Solarized" },
-  { id: "rosepine", label: "Rosé Pine" },
+  { id: "rosepine", label: "Rosé Pine", icon: "moon" as const },
 ] as const;
 
 export type Theme = (typeof THEMES)[number]["id"];
