@@ -27,6 +27,7 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   const [isLoading, setIsLoading] = useState(false);
   const [thinkingStatus, setThinkingStatus] = useState("");
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingIndexRef = useRef<number | null>(null);
@@ -89,7 +90,7 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
     setThinkingStatus("Analyzing your request...");
 
     try {
-      const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors };
+      const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors, summary: summary ?? undefined };
       // Send prior conversation turns so the agent has multi-turn memory.
       // Filter out requestId since the backend doesn't need it.
       const history = messages.map(({ role, content: c }) => ({ role, content: c }));
@@ -104,6 +105,7 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
         });
         setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${res.error}` }]);
       } else {
+        if (typeof res.summary === "string") setSummary(res.summary);
         if (res.editedFiles && onFileEdited) {
           for (const [path, newContent] of Object.entries(res.editedFiles)) {
             onFileEdited(path, newContent);

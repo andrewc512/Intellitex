@@ -70,7 +70,20 @@ async function execute({ path: filePath, old_str, new_str }) {
     }
     const newContent = content.replace(old_str, new_str);
     await fs.writeFile(filePath, newContent, 'utf-8');
-    return { success: true, newContent };
+
+    // Return a compact diff snippet so the model can verify the change
+    // without re-reading the entire file.
+    const newLines = newContent.split('\n');
+    const replaceStart = content.slice(0, content.indexOf(old_str)).split('\n').length;
+    const newStrLines = new_str.split('\n').length;
+    const ctxBefore = 2;
+    const ctxAfter = 2;
+    const snippetStart = Math.max(1, replaceStart - ctxBefore);
+    const snippetEnd = Math.min(newLines.length, replaceStart + newStrLines - 1 + ctxAfter);
+    const snippet = newLines.slice(snippetStart - 1, snippetEnd)
+      .map((l, i) => `${snippetStart + i}: ${l}`).join('\n');
+
+    return { success: true, snippet, newContent };
   } catch (err) {
     return { error: err.message };
   }

@@ -61,9 +61,19 @@ async function execute({ path: filePath, start_line, end_line, new_text }) {
     const newContent = lines.join('\n');
 
     await fs.writeFile(filePath, newContent, 'utf-8');
+
+    // Return a compact diff snippet so the model can verify the change
+    const ctxBefore = 2;
+    const ctxAfter = 2;
+    const snippetStart = Math.max(1, start_line - ctxBefore);
+    const snippetEnd = Math.min(lines.length, start_line + newLines.length - 1 + ctxAfter);
+    const snippet = lines.slice(snippetStart - 1, snippetEnd)
+      .map((l, i) => `${snippetStart + i}: ${l}`).join('\n');
+
     return {
       success: true,
       linesReplaced: `${start_line}-${clampedEnd}`,
+      snippet,
       newContent,
     };
   } catch (err) {

@@ -3,6 +3,7 @@ export interface AgentContext {
   content?: string;
   selection?: { startLine: number; endLine: number };
   compileErrors?: Array<{ file: string; line: number; message: string }>;
+  summary?: string;
 }
 
 export interface AgentResponse {
@@ -10,6 +11,7 @@ export interface AgentResponse {
   error?: string;
   /** Files the agent wrote: absolute path → new content. */
   editedFiles?: Record<string, string>;
+  summary?: string | null;
 }
 
 export interface AgentMessage {
