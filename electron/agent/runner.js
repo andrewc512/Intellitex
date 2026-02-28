@@ -6,6 +6,7 @@ const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
 const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
 const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '4096', 10);
+const MAX_HISTORY_TURNS = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS || '8', 10);
 
 /**
  * Agentic loop with tool support.
@@ -43,7 +44,9 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
       const toolLabel = `Running ${toolName.replace(/_/g, ' ')}...`;
       progress({ type: 'status', message: toolLabel });
       const args = safeParse(tc.function.arguments);
+      console.log(`[agent] tool_call: ${toolName}`, JSON.stringify(args, null, 2));
       const result = await executeTool(toolName, args);
+      console.log(`[agent] tool_result: ${toolName}`, JSON.stringify(result, null, 2).slice(0, 500));
 
       if (result.newContent !== undefined && args.path) {
         editedFiles[args.path] = result.newContent;
@@ -165,12 +168,13 @@ function buildMessages(context, userPrompt, history) {
     messages.push({ role: 'system', content: `Context:\n${dynamicContext}` });
   }
 
-  // Append prior conversation turns so the model has multi-turn memory.
+  // Append the last N conversation turns so the model has multi-turn memory
+  // without unbounded token growth.
   if (Array.isArray(history)) {
-    for (const msg of history) {
-      if (msg.role === 'user' || msg.role === 'assistant') {
-        messages.push({ role: msg.role, content: msg.content });
-      }
+    const eligible = history.filter((m) => m.role === 'user' || m.role === 'assistant');
+    const trimmed = eligible.slice(-MAX_HISTORY_TURNS);
+    for (const msg of trimmed) {
+      messages.push({ role: msg.role, content: msg.content });
     }
   }
 

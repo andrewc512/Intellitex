@@ -64,17 +64,8 @@ function getSystemPrompt(filePath) {
 }
 
 function buildContext(context) {
-  const isItek = context.filePath && context.filePath.endsWith('.itek');
   const parts = [];
   if (context.filePath) parts.push(`File: ${context.filePath}`);
-  if (context.content) {
-    const numbered = context.content
-      .split('\n')
-      .map((line, i) => `${i + 1}: ${line}`)
-      .join('\n');
-    const lang = isItek ? 'itek' : 'latex';
-    parts.push(`\nCurrent content:\n\`\`\`${lang}\n${numbered}\n\`\`\``);
-  }
   if (context.selection) parts.push(`\nSelected lines: ${context.selection.startLine} to ${context.selection.endLine}`);
   if (context.compileErrors?.length) {
     parts.push('\nCompile errors:');

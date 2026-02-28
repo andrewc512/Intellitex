@@ -59,8 +59,8 @@ async function execute({ path: filePath, old_str, new_str }) {
       }
       if (!hint) {
         // Show a portion of the file so the model can see the actual content
-        const preview = lines.slice(0, 30).map((l, j) => `${j + 1}: ${l}`).join('\n');
-        hint = `\n\nFile preview (first 30 lines):\n${preview}`;
+        const preview = lines.slice(0, 10).map((l, j) => `${j + 1}: ${l}`).join('\n');
+        hint = `\n\nFile preview (first 10 lines):\n${preview}`;
       }
       return { error: `old_str not found in the file. Ensure it matches exactly — every space, tab, and newline must be identical.${hint}` };
     }
