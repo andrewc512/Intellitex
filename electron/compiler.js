@@ -301,6 +301,7 @@ async function compileItek(filePath) {
       if (fitsAtMax) {
         let lo = 0, hi = 1.0;
         const estimate = calculateCondenseScale(dims.pagetotal, counts);
+        let pdfMatchesResult = false;
 
         for (let i = 0; i < 4; i++) {
           const scale = i === 0 ? estimate : (lo + hi) / 2;
@@ -318,6 +319,7 @@ async function compileItek(filePath) {
 
           if (!tryResult.success) {
             lo = scale;
+            pdfMatchesResult = false;
             continue;
           }
 
@@ -325,38 +327,70 @@ async function compileItek(filePath) {
           if (tryDims.pages && tryDims.pages <= 1) {
             result = tryResult;
             hi = scale;
+            pdfMatchesResult = true;
           } else {
             lo = scale;
+            pdfMatchesResult = false;
           }
+        }
+
+        // If the last binary-search compile overwrote the PDF with a
+        // multi-page attempt, recompile with the best known working scale.
+        if (!pdfMatchesResult) {
+          const spacing = calculateSpacing(hi);
+          const fixLatex = transpile(doc, { spacing });
+          await fs.writeFile(texPath, fixLatex, "utf-8");
+          result = await compileTex(texPath, dir, basename);
         }
       }
 
     // ── Expand: single page with excessive whitespace ────────────────────────
     } else if (dims.pages === 1 && dims.pagetotal !== null) {
       const fillRatio = dims.pagetotal / dims.textheight;
-      let expandScale = calculateExpandScale(fillRatio);
+      const maxExpandScale = calculateExpandScale(fillRatio);
 
-      // Try expansion with back-off if it overflows to a second page
-      for (let attempt = 0; attempt < 2 && expandScale > 0.05; attempt++) {
-        const spacing = calculateSpacing(-expandScale);
-        let expandLatex;
-        try {
-          expandLatex = transpile(doc, { spacing, measure: true });
-        } catch {
-          break;
-        }
+      if (maxExpandScale > 0.05) {
+        let lo = 0, hi = maxExpandScale;
+        let pdfMatchesResult = true;
 
-        await fs.writeFile(texPath, expandLatex, "utf-8");
-        const expandResult = await compileTex(texPath, dir, basename);
+        for (let i = 0; i < 4; i++) {
+          const scale = (lo + hi) / 2;
+          const spacing = calculateSpacing(-scale);
+          let expandLatex;
+          try {
+            expandLatex = transpile(doc, { spacing, measure: true });
+          } catch {
+            hi = scale;
+            continue;
+          }
 
-        if (expandResult.success) {
-          const expandDims = parseDimensions(expandResult.log);
-          if (!expandDims.pages || expandDims.pages <= 1) {
-            result = expandResult;
-            break;
+          await fs.writeFile(texPath, expandLatex, "utf-8");
+          const expandResult = await compileTex(texPath, dir, basename);
+
+          if (expandResult.success) {
+            const expandDims = parseDimensions(expandResult.log);
+            if (expandDims.pages && expandDims.pages <= 1) {
+              result = expandResult;
+              lo = scale;
+              pdfMatchesResult = true;
+            } else {
+              hi = scale;
+              pdfMatchesResult = false;
+            }
+          } else {
+            hi = scale;
+            pdfMatchesResult = false;
           }
         }
-        expandScale *= 0.5;
+
+        // If the last compile overwrote the PDF with a failed (multi-page)
+        // attempt, recompile with the best known working expansion scale.
+        if (!pdfMatchesResult) {
+          const spacing = lo > 0.01 ? calculateSpacing(-lo) : undefined;
+          const fixLatex = transpile(doc, spacing ? { spacing } : {});
+          await fs.writeFile(texPath, fixLatex, "utf-8");
+          result = await compileTex(texPath, dir, basename);
+        }
       }
     }
   }
