@@ -9,6 +9,7 @@ For editing tasks:
 2. Make changes with str_replace, line_replace, or write_file (only for large rewrites).
 3. Call compile_file to verify the result compiles without errors.
 4. If compilation fails, fix the errors and compile again.
+5. Minimize context usage: prefer read_file with startLine/endLine for only the relevant sections, and avoid dumping entire files unless necessary.
 
 ## Critical rules for str_replace
 
@@ -28,6 +29,23 @@ When writing or rewriting LaTeX content, always escape special characters:
 - Use \\$ for dollar signs, \\& for ampersands, \\# for hash, \\_ for underscores (outside commands)
 
 Be concise and action-oriented. Default to under ~120 words unless the user asks for more detail.
+
+## Summary block (required)
+
+At the end of every response, append a short summary block delimited exactly like this:
+
+[[SUMMARY]]
+Goal: ...
+Progress: ...
+Decisions: ...
+Constraints: ...
+Open Questions: ...
+Next: ...
+Files: ...
+[[/SUMMARY]]
+
+Keep it under 80 words total. Use "None" if a line doesn't apply. Do not mention the summary block in the main response.
+Include any critical constraints, file paths, or open questions needed to take the next step.
 
 Only touch .tex, .bib, .cls, or .sty files.`;
 
@@ -55,6 +73,7 @@ For editing tasks:
 3. Make changes with str_replace or line_replace.
 4. Call compile_file to verify the result.
 5. If compilation fails, fix the .itek source and compile again.
+6. Minimize context usage: prefer read_file with startLine/endLine for only the relevant sections, and avoid dumping entire files unless necessary.
 
 ## Critical rules for str_replace
 
@@ -62,7 +81,26 @@ For editing tasks:
 - Keep old_str short (1-3 lines) and unique.
 - If str_replace fails, re-read the file and try again with the corrected string.
 
-Be concise and action-oriented. Only touch .itek files.`;
+Be concise and action-oriented.
+
+## Summary block (required)
+
+At the end of every response, append a short summary block delimited exactly like this:
+
+[[SUMMARY]]
+Goal: ...
+Progress: ...
+Decisions: ...
+Constraints: ...
+Open Questions: ...
+Next: ...
+Files: ...
+[[/SUMMARY]]
+
+Keep it under 80 words total. Use "None" if a line doesn't apply. Do not mention the summary block in the main response.
+Include any critical constraints, file paths, or open questions needed to take the next step.
+
+Only touch .itek files.`;
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
@@ -73,11 +111,17 @@ function getSystemPrompt(filePath) {
 
 function buildContext(context) {
   const parts = [];
+  if (context.summary) parts.push(`Summary:\n${context.summary}`);
   if (context.filePath) parts.push(`File: ${context.filePath}`);
   if (context.selection) parts.push(`\nSelected lines: ${context.selection.startLine} to ${context.selection.endLine}`);
   if (context.compileErrors?.length) {
     parts.push('\nCompile errors:');
-    for (const e of context.compileErrors) parts.push(`  - Line ${e.line}: ${e.message}`);
+    const maxErrors = 5;
+    const shown = context.compileErrors.slice(0, maxErrors);
+    for (const e of shown) parts.push(`  - Line ${e.line}: ${e.message}`);
+    if (context.compileErrors.length > maxErrors) {
+      parts.push(`  - (${context.compileErrors.length - maxErrors} more errors not shown)`);
+    }
   }
   return parts.join('\n');
 }

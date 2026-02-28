@@ -7,6 +7,8 @@ const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 1
 const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
 const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '4096', 10);
 const MAX_HISTORY_TURNS = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS || '8', 10);
+const MAX_HISTORY_TURNS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS_SUMMARIZED || '2', 10);
+const MAX_HISTORY_CHARS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_CHARS_SUMMARIZED || '800', 10);
 
 /**
  * Agentic loop with tool support.
@@ -36,7 +38,8 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
     lastAssistant = assistant;
 
     if (!assistant.tool_calls || assistant.tool_calls.length === 0) {
-      return { message: assistant.content ?? '', editedFiles };
+      const { cleaned, summary } = extractSummaryBlock(assistant.content ?? '');
+      return { message: cleaned, summary, editedFiles };
     }
 
     for (const tc of assistant.tool_calls) {
@@ -154,6 +157,20 @@ function buildMessage(content, toolCallsByIndex) {
   return msg;
 }
 
+function extractSummaryBlock(content) {
+  const startToken = '[[SUMMARY]]';
+  const endToken = '[[/SUMMARY]]';
+  if (!content) return { cleaned: '', summary: null };
+  const start = content.lastIndexOf(startToken);
+  const end = content.lastIndexOf(endToken);
+  if (start === -1 || end === -1 || end <= start) {
+    return { cleaned: content.trim(), summary: null };
+  }
+  const summary = content.slice(start + startToken.length, end).trim();
+  const cleaned = (content.slice(0, start) + content.slice(end + endToken.length)).trim();
+  return { cleaned, summary: summary || null };
+}
+
 function safeParse(value) {
   if (!value) return {};
   if (typeof value === 'object') return value;
@@ -172,7 +189,14 @@ function buildMessages(context, userPrompt, history) {
   // without unbounded token growth.
   if (Array.isArray(history)) {
     const eligible = history.filter((m) => m.role === 'user' || m.role === 'assistant');
-    const trimmed = eligible.slice(-MAX_HISTORY_TURNS);
+    const hasSummary = !!context.summary;
+    const maxTurns = hasSummary ? MAX_HISTORY_TURNS_SUMMARIZED : MAX_HISTORY_TURNS;
+    const trimmed = eligible.slice(-maxTurns).map((m) => {
+      if (!hasSummary) return m;
+      if (typeof m.content !== 'string') return m;
+      if (m.content.length <= MAX_HISTORY_CHARS_SUMMARIZED) return m;
+      return { ...m, content: `${m.content.slice(0, MAX_HISTORY_CHARS_SUMMARIZED)}…` };
+    });
     for (const msg of trimmed) {
       messages.push({ role: msg.role, content: msg.content });
     }
