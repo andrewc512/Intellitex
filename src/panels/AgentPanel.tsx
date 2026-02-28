@@ -28,11 +28,19 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   const [thinkingStatus, setThinkingStatus] = useState("");
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingIndexRef = useRef<number | null>(null);
   const activeRequestIdRef = useRef(0);
 
   useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinkingStatus]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [inputValue]);
 
   useEffect(() => {
     const cleanup = window.electronAPI.onAgentProgress((status: AgentProgress) => {
@@ -125,7 +133,9 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
     return (
       <div className="panel" role="region" aria-label="AI Assistant">
         <div className="panel-header">
-          <img className="panel-header-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
+          <svg className="panel-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
           <span className="panel-header-title">Assistant</span>
         </div>
         <div className="agent-empty" role="alert">
@@ -140,7 +150,9 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   return (
     <div className="panel" role="region" aria-label="AI Assistant">
       <div className="panel-header">
-        <img className="panel-header-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
+        <svg className="panel-header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
         <span className="panel-header-title">Assistant</span>
         <div className="panel-header-controls">
           {onMoveLeft && (
@@ -203,12 +215,19 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
 
       <form className="agent-input-area" onSubmit={(e) => { e.preventDefault(); sendMessage(inputValue); }}>
         <div className="agent-input-wrapper">
-          <input
+          <textarea
+            ref={textareaRef}
             className="agent-input"
-            type="text"
+            rows={1}
             placeholder="Ask anything about your resume..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(inputValue);
+              }
+            }}
             aria-label="Message the AI assistant"
             disabled={isLoading}
           />
