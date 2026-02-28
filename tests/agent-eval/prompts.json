@@ -1,0 +1,163 @@
+[
+  {
+    "id": "tex-edit-01",
+    "category": "edit",
+    "fileType": "tex",
+    "prompt": "Change the candidate name from John Doe to Jane Smith",
+    "description": "Simple string replacement in the heading"
+  },
+  {
+    "id": "tex-edit-02",
+    "category": "edit",
+    "fileType": "tex",
+    "prompt": "Change the GPA from 3.82 to 3.95",
+    "description": "Edit a numeric value in the education section"
+  },
+  {
+    "id": "tex-edit-03",
+    "category": "edit",
+    "fileType": "tex",
+    "prompt": "Add a new bullet point under the Acme Corp experience: 'Mentored 2 junior engineers on best practices for API design'",
+    "description": "Insert a new item into an existing itemize environment"
+  },
+  {
+    "id": "tex-edit-04",
+    "category": "edit",
+    "fileType": "tex",
+    "prompt": "Remove the entire StartupXYZ experience entry (title, role, dates, and all bullet points)",
+    "description": "Delete a multi-line block from the document"
+  },
+  {
+    "id": "tex-edit-05",
+    "category": "edit",
+    "fileType": "tex",
+    "prompt": "Add a new project called 'WeatherApp' built with 'Swift, SwiftUI, CoreLocation' from 'Mar. 2024' with bullet: 'Built iOS weather app with 5-day forecasts and location-based alerts'",
+    "description": "Add a completely new project entry with proper LaTeX formatting"
+  },
+  {
+    "id": "tex-edit-06",
+    "category": "edit",
+    "fileType": "tex",
+    "prompt": "Change the Acme Corp internship dates from 'June 2025 -- Sep. 2025' to 'May 2025 -- Aug. 2025'",
+    "description": "Edit date range in experience section"
+  },
+  {
+    "id": "tex-edit-07",
+    "category": "edit",
+    "fileType": "tex",
+    "prompt": "Add 'Rust' and 'Go' to the Languages line in the Skills section",
+    "description": "Append items to an existing comma-separated list"
+  },
+  {
+    "id": "tex-read-01",
+    "category": "read",
+    "fileType": "tex",
+    "prompt": "What GPA is listed in this resume?",
+    "description": "Extract a specific data point from the document"
+  },
+  {
+    "id": "tex-read-02",
+    "category": "read",
+    "fileType": "tex",
+    "prompt": "List all the companies and organizations mentioned in the Experience section",
+    "description": "Identify and list entities from a specific section"
+  },
+  {
+    "id": "tex-read-03",
+    "category": "read",
+    "fileType": "tex",
+    "prompt": "How many bullet points are there in total across all sections?",
+    "description": "Count elements across the entire document"
+  },
+  {
+    "id": "tex-doc-01",
+    "category": "documentation",
+    "fileType": "tex",
+    "prompt": "What does the \\hfill command do in LaTeX?",
+    "description": "Answer a LaTeX documentation question without editing"
+  },
+  {
+    "id": "tex-doc-02",
+    "category": "documentation",
+    "fileType": "tex",
+    "prompt": "How do I make text bold and italic at the same time in LaTeX?",
+    "description": "Answer a LaTeX formatting question"
+  },
+  {
+    "id": "tex-multi-01",
+    "category": "multi-step",
+    "fileType": "tex",
+    "prompt": "Add a new job at Google as a 'Software Engineer Intern' in 'Mountain View, CA' from 'June 2024 -- Sep. 2024' with two bullets about building microservices and improving latency. Then compile the file.",
+    "description": "Multi-step: add content and compile"
+  },
+  {
+    "id": "tex-multi-02",
+    "category": "multi-step",
+    "fileType": "tex",
+    "prompt": "Read the file first, then rewrite all the bullet points under Acme Corp to be more quantitative and impactful. Each bullet should include a metric.",
+    "description": "Multi-step: read then rewrite with specific criteria"
+  },
+  {
+    "id": "itek-edit-01",
+    "category": "edit",
+    "fileType": "itek",
+    "prompt": "Change the candidate name from John Doe to Jane Smith",
+    "description": "Edit the @resume declaration"
+  },
+  {
+    "id": "itek-edit-02",
+    "category": "edit",
+    "fileType": "itek",
+    "prompt": "Change the email address to janesmith@gmail.com",
+    "description": "Edit a field in the socials section"
+  },
+  {
+    "id": "itek-edit-03",
+    "category": "edit",
+    "fileType": "itek",
+    "prompt": "Add a new bullet point under Acme Corp: 'Designed database schema supporting 1M+ records with sub-100ms query times'",
+    "description": "Add a bullet to an existing experience entry"
+  },
+  {
+    "id": "itek-edit-04",
+    "category": "edit",
+    "fileType": "itek",
+    "prompt": "Add a new project called 'ChatBot' with stack 'Python, LangChain, Pinecone' from 'Dec. 2024' with bullet: 'Built RAG-based chatbot handling 1000+ queries per day'",
+    "description": "Add a new entry to the projects section"
+  },
+  {
+    "id": "itek-edit-05",
+    "category": "edit",
+    "fileType": "itek",
+    "prompt": "Remove the entire StartupXYZ experience entry",
+    "description": "Delete a multi-line entry from itek"
+  },
+  {
+    "id": "itek-read-01",
+    "category": "read",
+    "fileType": "itek",
+    "prompt": "What skills are listed under frameworks?",
+    "description": "Read a specific field from the itek file"
+  },
+  {
+    "id": "itek-doc-01",
+    "category": "documentation",
+    "fileType": "itek",
+    "prompt": "What sections does the itek language support?",
+    "description": "Documentation question about itek syntax"
+  },
+  {
+    "id": "itek-doc-02",
+    "category": "documentation",
+    "fileType": "itek",
+    "prompt": "How do I add a link in an itek file?",
+    "description": "Documentation question about itek features"
+  },
+  {
+    "id": "itek-multi-01",
+    "category": "multi-step",
+    "fileType": "itek",
+    "prompt": "Add a new leadership entry for 'Hack Club' where I'm the 'President' in 'Berkeley, CA' from 'Jan. 2025 – Present' with two bullets about organizing hackathons and growing membership. Then compile the file.",
+    "description": "Multi-step: add itek entry and compile"
+  }
+]
