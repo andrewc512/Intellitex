@@ -54,8 +54,16 @@ function fmtIn(n) {
 const DEFAULT_SPACING = {
   sectionBefore: -6,
   sectionAfter: -6,
-  subheadingBefore: -2,
+  // Space before each company / institution heading (ACM, UCSB, IntelliTex, etc).
+  // Small positive default so experience/company headings get similar breathing
+  // room to project headings, even before dynamic spacing kicks in.
+  subheadingBefore: 1,
+  // Space after the two-line subheading block (before bullets).
   subheadingAfter: -7,
+  // Extra gap between the company line and the role/date line inside the
+  // subheading tabular. Slightly tighter than LaTeX default, but still leaves
+  // visible air around the job title.
+  subheadingRowGap: -1.5,
   itemAfter: -2,
   listEndAfter: -6,
   projectAfter: -7,
@@ -67,8 +75,11 @@ const DEFAULT_SPACING = {
 const CONDENSE_LIMITS = {
   sectionBefore: -10,
   sectionAfter: -11,
-  subheadingBefore: -6,
+  // When we really have to squeeze, this can go slightly negative to pull
+  // entries closer together, but only after less important gaps have been used.
+  subheadingBefore: -4,
   subheadingAfter: -13,
+  subheadingRowGap: -6,
   itemAfter: -6,
   listEndAfter: -11,
   projectAfter: -13,
@@ -80,8 +91,9 @@ const CONDENSE_LIMITS = {
 const EXPAND_LIMITS = {
   sectionBefore: -1,
   sectionAfter: -1,
-  subheadingBefore: 0,
+  subheadingBefore: 3,
   subheadingAfter: -3,
+  subheadingRowGap: 0,
   itemAfter: 0,
   listEndAfter: -1,
   projectAfter: -3,
@@ -90,16 +102,24 @@ const EXPAND_LIMITS = {
   textheight: 1.0,
 };
 
+// Keys whose whitespace should be preserved longer when condensing.
+// Value is a power-curve exponent: 1 = linear (normal), higher = more
+// resistant. At scale 1.0 every key still reaches its full condense limit,
+// but at moderate scales these keys stay much closer to their defaults.
+const CONDENSE_PRESERVE = {
+  subheadingBefore: 3,
+};
+
 /**
  * Calculate spacing config from a continuous scale.
  * scale  0  = default
  * scale >0  = condense (up to +1 = maximum tightening)
  * scale <0  = expand   (down to -1 = maximum loosening)
  *
- * Uses linear interpolation between DEFAULT and the appropriate limit so
- * every spacing parameter moves the same fraction toward its bound.  This
- * produces visually uniform tightening/loosening — no single gap shrinks
- * disproportionately more than another.
+ * Most parameters interpolate linearly. Keys listed in CONDENSE_PRESERVE use a
+ * power curve so they resist condensing and only shrink significantly at high
+ * scale values — preserving visually important whitespace (e.g. the gap above
+ * subheadings) for as long as possible.
  */
 function calculateSpacing(scale) {
   if (scale === 0) return { ...DEFAULT_SPACING };
@@ -109,7 +129,12 @@ function calculateSpacing(scale) {
 
   const result = {};
   for (const key of Object.keys(DEFAULT_SPACING)) {
-    result[key] = DEFAULT_SPACING[key] + t * (target[key] - DEFAULT_SPACING[key]);
+    const ease =
+      scale > 0 && CONDENSE_PRESERVE[key]
+        ? Math.pow(t, CONDENSE_PRESERVE[key])
+        : t;
+    result[key] =
+      DEFAULT_SPACING[key] + ease * (target[key] - DEFAULT_SPACING[key]);
   }
   return result;
 }
@@ -218,7 +243,7 @@ function preamble(options = {}) {
     "\\newcommand{\\resumeSubheading}[4]{",
     `  \\vspace{${fmtPt(sp.subheadingBefore)}pt}\\item`,
     "    \\begin{tabular*}{0.97\\textwidth}[t]{l@{\\extracolsep{\\fill}}r}",
-    "      \\textbf{#1} & #2 \\\\",
+    `      \\textbf{#1} & #2 \\\\[${fmtPt(sp.subheadingRowGap)}pt]`,
     "      \\textit{\\small#3} & \\textit{\\small #4} \\\\",
     `    \\end{tabular*}\\vspace{${fmtPt(sp.subheadingAfter)}pt}`,
     "}",
@@ -300,7 +325,7 @@ function renderEducation(section) {
     const loc = escapeLatex(fieldVal(f.loc || f.location || ""));
     const deg = fieldVal(f.degree || "");
     const gpa = fieldVal(f.gpa || "");
-    const degree = gpa ? `${deg}; GPA: ${gpa}` : deg;
+    const degree = gpa ? `${deg} - GPA: ${gpa}` : deg;
     const grad = escapeLatex(fieldVal(f.grad || f.graduation || ""));
 
     lines.push("  \\resumeSubheading");

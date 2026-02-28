@@ -116,7 +116,7 @@ function calculateCondenseScale(overflow, counts) {
 
   const maxSavings =
     counts.sections * (d("sectionBefore") + d("sectionAfter")) +
-    counts.subheadings * (d("subheadingBefore") + d("subheadingAfter")) +
+    counts.subheadings * (d("subheadingBefore") + d("subheadingAfter") + d("subheadingRowGap")) +
     counts.projectHeadings * d("projectAfter") +
     counts.bullets * d("itemAfter") +
     counts.bulletLists * d("listEndAfter") +

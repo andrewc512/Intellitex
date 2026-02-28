@@ -3,34 +3,34 @@
    ─────────────────────────────────────────── */
 
 :root {
-  /* Surface */
-  --bg-base: #12121a;
-  --bg-surface: #1a1a26;
-  --bg-elevated: #222232;
-  --bg-hover: #2a2a3c;
-  --bg-active: #32324a;
+  /* Surface – Nighttime */
+  --bg-base: #050515;
+  --bg-surface: #0b0b1e;
+  --bg-elevated: #14142b;
+  --bg-hover: #1b1b36;
+  --bg-active: #242448;
 
   /* Borders */
-  --border-default: #2e2e42;
-  --border-subtle: #24243a;
+  --border-default: #2b2b4f;
+  --border-subtle: #1e1e3a;
 
   /* Text */
-  --text-primary: #e8e8f0;
-  --text-secondary: #9494b0;
-  --text-tertiary: #6a6a86;
-  --text-inverse: #12121a;
+  --text-primary: #e6e6f5;
+  --text-secondary: #9b9bc7;
+  --text-tertiary: #6f6f95;
+  --text-inverse: #050515;
 
   /* Accent (purple – brand) */
   --accent: #8b7cf6;
   --accent-hover: #7a6ae8;
-  --accent-muted: rgba(139, 124, 246, 0.12);
+  --accent-muted: rgba(139, 124, 246, 0.14);
   --accent-text: #b4a9fc;
 
   /* Semantic */
   --success: #4ade80;
-  --success-muted: rgba(74, 222, 128, 0.12);
-  --error: #f87171;
-  --error-muted: rgba(248, 113, 113, 0.12);
+  --success-muted: rgba(74, 222, 128, 0.14);
+  --error: #f97373;
+  --error-muted: rgba(249, 115, 115, 0.16);
   --warning: #fbbf24;
 
   /* Sizing */
@@ -89,34 +89,34 @@
 }
 
 [data-theme="muted"] {
-  --bg-base: #F5F0E8;
-  --bg-surface: #FAF7F2;
-  --bg-elevated: #FFFDF9;
-  --bg-hover: #EDE6DC;
-  --bg-active: #E5DDD2;
+  --bg-base: #e4d9cc;
+  --bg-surface: #f0e6d8;
+  --bg-elevated: #f7efe3;
+  --bg-hover: #e0d4c5;
+  --bg-active: #d3c6b6;
 
-  --border-default: #D4CCC2;
-  --border-subtle: #E5DFD6;
+  --border-default: #c6b9aa;
+  --border-subtle: #ddd1c2;
 
-  --text-primary: #2C2825;
-  --text-secondary: #6B5F52;
-  --text-tertiary: #9C9185;
-  --text-inverse: #FAF7F2;
+  --text-primary: #2b2622;
+  --text-secondary: #6b5f52;
+  --text-tertiary: #9c9185;
+  --text-inverse: #f7efe3;
 
-  --accent: #6B5B4F;
-  --accent-hover: #5C5044;
-  --accent-muted: rgba(107, 91, 79, 0.12);
-  --accent-text: #5C5044;
+  --accent: #6b5b4f;
+  --accent-hover: #5c5044;
+  --accent-muted: rgba(107, 91, 79, 0.14);
+  --accent-text: #5c5044;
 
-  --success: #5F6B52;
-  --success-muted: rgba(95, 107, 82, 0.10);
-  --error: #B91C1C;
-  --error-muted: rgba(185, 28, 28, 0.08);
-  --warning: #A16207;
+  --success: #67725b;
+  --success-muted: rgba(103, 114, 91, 0.16);
+  --error: #a63a3a;
+  --error-muted: rgba(166, 58, 58, 0.10);
+  --warning: #8a5a12;
 
-  --shadow-sm: 0 1px 2px rgba(44, 40, 37, 0.05);
-  --shadow-md: 0 4px 12px rgba(44, 40, 37, 0.07);
-  --shadow-lg: 0 8px 32px rgba(44, 40, 37, 0.09);
+  --shadow-sm: 0 1px 2px rgba(44, 40, 37, 0.06);
+  --shadow-md: 0 4px 12px rgba(44, 40, 37, 0.08);
+  --shadow-lg: 0 8px 32px rgba(44, 40, 37, 0.10);
 }
 
 [data-theme="neon"] {
@@ -1476,12 +1476,27 @@ body, #root {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1px solid rgba(128, 128, 128, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.25);
   flex-shrink: 0;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 1px 2px rgba(0, 0, 0, 0.35);
 }
-.theme-dropdown-swatch--dark      { background: linear-gradient(135deg, #12121a 50%, #8b7cf6 50%); }
-.theme-dropdown-swatch--light     { background: linear-gradient(135deg, #f5f5f7 50%, #7c6ce7 50%); }
-.theme-dropdown-swatch--muted     { background: linear-gradient(135deg, #F5F0E8 50%, #6B5B4F 50%); }
-.theme-dropdown-swatch--neon      { background: linear-gradient(135deg, #0a0a0a 50%, #ff00ff 50%); }
-.theme-dropdown-swatch--solarized { background: linear-gradient(135deg, #002b36 50%, #268bd2 50%); }
-.theme-dropdown-swatch--rosepine  { background: linear-gradient(135deg, #191724 50%, #c4a7e7 50%); }
+.theme-dropdown-swatch--dark {
+  background: radial-gradient(circle at 30% 25%, #a79bff 0%, #8b7cf6 40%, #5c4aa8 100%);
+}
+.theme-dropdown-swatch--light {
+  background: radial-gradient(circle at 30% 25%, #ffffff 0%, #f3f1ff 42%, #7c6ce7 100%);
+}
+.theme-dropdown-swatch--muted {
+  background: radial-gradient(circle at 30% 25%, #f8f3ec 0%, #e6dbcf 38%, #6b5b4f 100%);
+}
+.theme-dropdown-swatch--neon {
+  background: radial-gradient(circle at 30% 25%, #33ffd9 0%, #0f1012 40%, #ff00ff 95%);
+}
+.theme-dropdown-swatch--solarized {
+  background: radial-gradient(circle at 30% 25%, #5aafea 0%, #1f6fa7 45%, #268bd2 100%);
+}
+.theme-dropdown-swatch--rosepine {
+  background: radial-gradient(circle at 30% 25%, #f0d5ff 0%, #c4a7e7 45%, #9b7fc1 100%);
+}
