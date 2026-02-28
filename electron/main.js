@@ -249,7 +249,20 @@ ipcMain.handle("file:rename", async (_event, oldPath, newName) => {
 });
 
 ipcMain.handle("file:getRecents", async () => {
-  return readRecents();
+  const recents = await readRecents();
+  const existing = [];
+  for (const p of recents) {
+    try {
+      await fs.access(p);
+      existing.push(p);
+    } catch {
+      // file no longer on disk — drop it
+    }
+  }
+  if (existing.length !== recents.length) {
+    await fs.writeFile(RECENTS_PATH(), JSON.stringify(existing), "utf-8");
+  }
+  return existing;
 });
 
 ipcMain.handle("compile:file", async (_event, filePath) => {
