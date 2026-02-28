@@ -247,6 +247,13 @@ function preamble(options = {}) {
     "      \\textit{\\small#3} & \\textit{\\small #4} \\\\",
     `    \\end{tabular*}\\vspace{${fmtPt(sp.subheadingAfter)}pt}`,
     "}",
+    "\\newcommand{\\resumeExpSubheading}[4]{",
+    `  \\vspace{${fmtPt(sp.subheadingBefore)}pt}\\item`,
+    "    \\begin{tabular*}{0.97\\textwidth}[t]{l@{\\extracolsep{\\fill}}r}",
+    `      \\textbf{#1} & \\textbf{#2} \\\\[${fmtPt(sp.subheadingRowGap)}pt]`,
+    "      \\textit{\\small#3} & \\textit{\\small #4} \\\\",
+    `    \\end{tabular*}\\vspace{${fmtPt(sp.subheadingAfter)}pt}`,
+    "}",
     "\\newcommand{\\resumeProjectHeading}[2]{",
     "    \\item",
     "    \\begin{tabular*}{0.97\\textwidth}{l@{\\extracolsep{\\fill}}r}",
@@ -326,10 +333,11 @@ function renderEducation(section) {
     const deg = fieldVal(f.degree || "");
     const gpa = fieldVal(f.gpa || "");
     const degree = gpa ? `${deg} - GPA: ${gpa}` : deg;
-    const grad = escapeLatex(fieldVal(f.grad || f.graduation || ""));
+    const rawGrad = escapeLatex(fieldVal(f.grad || f.graduation || ""));
+    const grad = rawGrad ? `Expected Graduation: ${rawGrad}` : "";
 
     lines.push("  \\resumeSubheading");
-    lines.push(`    {${school}}{${loc}}`);
+    lines.push(`    {${school}}{\\textbf{${loc}}}`);
     lines.push(`    {${escapeLatex(degree)}}{${grad}}`);
 
     const courses = fieldVal(f.courses || f.coursework || "");
@@ -370,9 +378,9 @@ function renderExperience(section) {
     const role = escapeLatex(fieldVal(f.role || f.title || ""));
     const date = escapeLatex(fieldVal(f.date || ""));
 
-    lines.push("  \\resumeSubheading");
-    lines.push(`    {${name}}{${loc}}`);
-    lines.push(`    {${role}}{${date}}`);
+    lines.push("  \\resumeExpSubheading");
+    lines.push(`    {${name}}{${date}}`);
+    lines.push(`    {${role}}{${loc}}`);
 
     if (entry.bullets.length) {
       lines.push("  \\resumeItemListStart");
@@ -425,11 +433,11 @@ function renderProjects(section) {
     if (stack) {
       lines.push("  \\resumeProjectHeading");
       lines.push(
-        `    {\\textbf{${name}} $|$ \\emph{${escapeLatex(stack)}}}{${date}}`
+        `    {\\textbf{${name}} $|$ \\emph{${escapeLatex(stack)}}}{\\textbf{${date}}}`
       );
     } else {
       lines.push("  \\resumeProjectHeading");
-      lines.push(`    {\\textbf{${name}}}{${date}}`);
+      lines.push(`    {\\textbf{${name}}}{\\textbf{${date}}}`);
     }
 
     if (entry.bullets.length) {
