@@ -33,10 +33,17 @@ function ErrorRow({ err }: { err: CompileError }) {
   );
 }
 
+function getInitialScale(): number {
+  const w = window.screen.width;
+  if (w <= 1440) return 1.0;
+  if (w >= 2560) return 1.2;
+  return Math.round((1.0 + 0.35 * (w - 1440) / (2560 - 1440)) * 100) / 100;
+}
+
 export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
-  const [scale, setScale] = useState(1.0);
+  const [scale, setScale] = useState(getInitialScale);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

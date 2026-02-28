@@ -2,13 +2,6 @@
 
 const TEX_SYSTEM_PROMPT = `You are a LaTeX editing assistant built into IntelliTex, a resume editor.
 
-You have tools to read, edit, and compile LaTeX files:
-- read_file: Read the content of a .tex / .bib / .cls / .sty file.
-- str_replace: Replace an exact string in a file (for targeted edits when you can copy old_str exactly).
-- line_replace: Replace lines N through M with new text (more reliable — you only specify line numbers).
-- write_file: Overwrite a file with new content (use for large rewrites only).
-- compile_file: Compile a .tex file with pdflatex and return any errors.
-
 For simple questions (e.g. "what does \\vspace do?"), just answer directly without calling any tools.
 
 For editing tasks:
@@ -38,53 +31,22 @@ const ITEK_SYSTEM_PROMPT = `You are an itek resume editing assistant built into 
 
 itek is a lightweight plain-text resume language that transpiles to LaTeX. You edit the .itek source directly — never write raw LaTeX. The app compiles .itek → LaTeX → PDF automatically.
 
-## itek grammar
+## itek language reference
 
-\`\`\`
-@resume <Full Name>          — document declaration (must be first line)
+Use the lookup_itek_reference tool to look up itek syntax, section definitions, fields, and examples before editing. Topics you can look up: grammar, socials, education, experience, leadership, projects, skills, special, all.
 
-#<section>                   — section header (lowercase). Known sections:
-                               socials, education, experience, leadership, skills, projects
-
-  <key>: <value>             — field with plain value
-  <key>: "<value>"           — field with quoted value (use for values with special chars)
-  <key>: <<url>>             — field with URL or email
-
-  company <Name>             — entry in #experience or #leadership
-  project <Name>             — entry in #projects
-  organization <Name>        — entry in #leadership
-  ## <Name>                  — generic entry (works in any section)
-
-    <key>: <value>           — field on an entry
-    * <text>                 — bullet point on an entry
-\`\`\`
-
-## Known fields per section
-
-- **#socials**: number, email, linkedin, github, website, portfolio
-- **#education** (or entry): school, loc, degree, gpa, grad, courses
-- **#experience / #leadership** entries: role, loc, date  + bullet points
-- **#projects** entries: stack, date  + bullet points
-- **#skills**: any key-value pairs (e.g. languages, frameworks, technologies)
+When you encounter an itek question or need to edit a .itek file, call lookup_itek_reference first to confirm the correct syntax and available fields.
 
 ## Compile errors
 
 Compile errors reference the generated LaTeX, not the .itek source. If a compile error mentions a line number, it refers to the intermediate LaTeX — look at the content of the .itek file to find the corresponding source and fix it there.
 
-## Tools
-
-You have tools to read, edit, and compile .itek files:
-- read_file: Read the content of the .itek file.
-- str_replace: Replace an exact string (copy old_str character-for-character).
-- line_replace: Replace lines N through M — more reliable when you have fresh line numbers.
-- write_file: Overwrite the file (use for large rewrites only).
-- compile_file: Transpile and compile the .itek file; returns any errors.
-
 For editing tasks:
-1. If no file content is provided in context, call read_file first.
-2. Make changes with str_replace or line_replace.
-3. Call compile_file to verify the result.
-4. If compilation fails, fix the .itek source and compile again.
+1. Call lookup_itek_reference to confirm syntax for the section you're editing.
+2. If no file content is provided in context, call read_file.
+3. Make changes with str_replace or line_replace.
+4. Call compile_file to verify the result.
+5. If compilation fails, fix the .itek source and compile again.
 
 ## Critical rules for str_replace
 
@@ -102,17 +64,8 @@ function getSystemPrompt(filePath) {
 }
 
 function buildContext(context) {
-  const isItek = context.filePath && context.filePath.endsWith('.itek');
   const parts = [];
   if (context.filePath) parts.push(`File: ${context.filePath}`);
-  if (context.content) {
-    const numbered = context.content
-      .split('\n')
-      .map((line, i) => `${i + 1}: ${line}`)
-      .join('\n');
-    const lang = isItek ? 'itek' : 'latex';
-    parts.push(`\nCurrent content:\n\`\`\`${lang}\n${numbered}\n\`\`\``);
-  }
   if (context.selection) parts.push(`\nSelected lines: ${context.selection.startLine} to ${context.selection.endLine}`);
   if (context.compileErrors?.length) {
     parts.push('\nCompile errors:');

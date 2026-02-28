@@ -55,9 +55,6 @@ async function execute({ path: filePath, start_line, end_line, new_text }) {
     }
     const clampedEnd = Math.min(end_line, lines.length);
 
-    // Show what's being replaced so the model can verify
-    const replaced = lines.slice(start_line - 1, clampedEnd).join('\n');
-
     // Perform the replacement
     const newLines = new_text === '' ? [] : new_text.split('\n');
     lines.splice(start_line - 1, clampedEnd - start_line + 1, ...newLines);
@@ -67,7 +64,6 @@ async function execute({ path: filePath, start_line, end_line, new_text }) {
     return {
       success: true,
       linesReplaced: `${start_line}-${clampedEnd}`,
-      oldText: replaced,
       newContent,
     };
   } catch (err) {
