@@ -31,6 +31,7 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamingIndexRef = useRef<number | null>(null);
   const activeRequestIdRef = useRef(0);
+  const isSendingRef = useRef(false);
 
   useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinkingStatus]);
@@ -76,7 +77,9 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
   }, []);
 
   const sendMessage = async (prompt: string) => {
-    if (!prompt.trim() || isLoading) return;
+    if (!prompt.trim()) return;
+    if (isSendingRef.current || isLoading) return;
+    isSendingRef.current = true;
     streamingIndexRef.current = null;
     const requestId = activeRequestIdRef.current + 1;
     activeRequestIdRef.current = requestId;
@@ -85,48 +88,57 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
     setIsLoading(true);
     setThinkingStatus("Analyzing your request...");
 
-    const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors };
-    // Send prior conversation turns so the agent has multi-turn memory.
-    // Filter out requestId since the backend doesn't need it.
-    const history = messages.map(({ role, content: c }) => ({ role, content: c }));
-    const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt, history);
+    try {
+      const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors };
+      // Send prior conversation turns so the agent has multi-turn memory.
+      // Filter out requestId since the backend doesn't need it.
+      const history = messages.map(({ role, content: c }) => ({ role, content: c }));
+      const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt, history);
 
-    if (res.error) {
-      setMessages((prev) => {
-        if (streamingIndexRef.current === null) return prev;
-        const idx = streamingIndexRef.current;
-        streamingIndexRef.current = null;
-        return prev.filter((_, i) => i !== idx);
-      });
-      setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${res.error}` }]);
-    } else {
-      if (res.editedFiles && onFileEdited) {
-        for (const [path, newContent] of Object.entries(res.editedFiles)) {
-          onFileEdited(path, newContent);
-        }
-      }
-      const requestId = activeRequestIdRef.current;
-      setMessages((prev) => {
-        if (streamingIndexRef.current !== null) {
+      if (res.error) {
+        setMessages((prev) => {
+          if (streamingIndexRef.current === null) return prev;
           const idx = streamingIndexRef.current;
           streamingIndexRef.current = null;
-          const next = [...prev];
-          if (next[idx]) {
-            next[idx] = { ...next[idx], content: res.message, requestId };
-            return next;
+          return prev.filter((_, i) => i !== idx);
+        });
+        setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${res.error}` }]);
+      } else {
+        if (res.editedFiles && onFileEdited) {
+          for (const [path, newContent] of Object.entries(res.editedFiles)) {
+            onFileEdited(path, newContent);
           }
         }
-        const last = prev[prev.length - 1];
-        if (last && last.role === "assistant" && last.requestId === requestId) {
-          const next = [...prev];
-          next[next.length - 1] = { ...last, content: res.message, requestId };
-          return next;
-        }
-        return [...prev, { role: "assistant", content: res.message, requestId }];
-      });
+        const reqId = activeRequestIdRef.current;
+        setMessages((prev) => {
+          // 1. If we have an active streaming message, finalize it
+          if (streamingIndexRef.current !== null) {
+            const idx = streamingIndexRef.current;
+            streamingIndexRef.current = null;
+            if (prev[idx]) {
+              const next = [...prev];
+              next[idx] = { ...next[idx], content: res.message, requestId: reqId };
+              return next;
+            }
+          }
+          // 2. Find any existing assistant message from this request to update
+          const existingIdx = prev.findLastIndex(
+            (m) => m.role === "assistant" && m.requestId === reqId
+          );
+          if (existingIdx !== -1) {
+            const next = [...prev];
+            next[existingIdx] = { ...next[existingIdx], content: res.message, requestId: reqId };
+            return next;
+          }
+          // 3. No existing message — add a new one
+          return [...prev, { role: "assistant", content: res.message, requestId: reqId }];
+        });
+      }
+    } finally {
+      isSendingRef.current = false;
+      setIsLoading(false);
+      setThinkingStatus("");
     }
-    setIsLoading(false);
-    setThinkingStatus("");
   };
 
   if (hasApiKey === false) {

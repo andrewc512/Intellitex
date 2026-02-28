@@ -1,0 +1,58 @@
+@resume John Doe
+
+#socials
+  number: 5551234567
+  email: <johndoe@email.com>
+  linkedin: <https://linkedin.com/in/johndoe>
+  github: <https://github.com/johndoe>
+  website: <https://johndoe.dev>
+
+#education
+  school: "University of California, Berkeley"
+  loc: "Berkeley, CA"
+  degree: "B.S. Computer Science"
+  gpa: 3.82
+  grad: "May 2026"
+  courses: "Data Structures, Algorithms, Operating Systems, Machine Learning"
+
+#experience
+  company Acme Corp
+    role: "Software Engineering Intern"
+    loc: "San Francisco, CA"
+    date: "June 2025 – Sep. 2025"
+    * Developed REST APIs using Python and Flask, handling 50k+ requests daily
+    * Implemented CI/CD pipeline with GitHub Actions, reducing deploy time by 40%
+    * Wrote unit tests achieving 95% code coverage across 3 microservices
+
+  company StartupXYZ
+    role: "Frontend Developer"
+    loc: "Remote"
+    date: "Jan. 2025 – May 2025"
+    * Built responsive dashboard using React and TypeScript for 2,000+ users
+    * Optimized bundle size by 35% through code splitting and lazy loading
+
+#skills
+  languages: Python, JavaScript, TypeScript, Java, C++, SQL
+  frameworks: React, Node.js, Flask, Django, TailwindCSS
+  technologies: Git, Docker, AWS, PostgreSQL, MongoDB, Redis
+
+#projects
+  project TaskFlow
+    stack: "React, Node.js, PostgreSQL"
+    date: "Oct. 2024"
+    * Built full-stack task management app with real-time collaboration features
+    * Deployed on AWS with auto-scaling, supporting 500+ concurrent users
+
+  project CodeReview Bot
+    stack: "Python, OpenAI API, GitHub API"
+    date: "Aug. 2024"
+    * Created GitHub bot that automatically reviews PRs using GPT-4
+    * Integrated with Slack for notifications, used by 15 team members
+
+#leadership
+  organization CS Club
+    role: "Vice President"
+    loc: "Berkeley, CA"
+    date: "Sep. 2024 – Present"
+    * Organized weekly tech talks with 100+ attendees per session
+    * Mentored 20 underclassmen through pair programming workshops

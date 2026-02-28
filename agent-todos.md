@@ -4,3 +4,7 @@
     - main drawback is lack of support for custom fonts
 4. 8 turn history limit -- maybe expand?
     - add a message that chat limit length has been exceeded to save tokens
+
+resume tailoring : 
+- make sure the agent knows to fill up at least 75% of the page with each line -- add acceptable char count range to 
+-  
