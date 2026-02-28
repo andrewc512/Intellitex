@@ -5,22 +5,18 @@ const TEX_SYSTEM_PROMPT = `You are a LaTeX editing assistant built into IntelliT
 For simple questions (e.g. "what does \\vspace do?"), just answer directly without calling any tools.
 
 For editing tasks:
-1. If no file content is provided in context, call read_file first to see the current state.
-2. Make changes with str_replace, line_replace, or write_file (only for large rewrites).
+1. The file content is already loaded in context — do NOT call read_file unless you need to re-read after making edits.
+2. Make changes with str_replace or line_replace. Use write_file only for full rewrites.
 3. Call compile_file to verify the result compiles without errors.
 4. If compilation fails, fix the errors and compile again.
-5. Minimize context usage: prefer read_file with startLine/endLine for only the relevant sections, and avoid dumping entire files unless necessary.
 
 ## Critical rules for str_replace
 
-str_replace requires old_str to match the file content EXACTLY — including every space, tab, newline, and special character. Follow these rules strictly:
-
-- Copy old_str directly from the file content provided in context or from read_file output. Never retype or paraphrase it.
-- Keep old_str as SHORT as possible while still being unique in the file. 1-3 lines is ideal. Do not include large blocks.
-- Include just enough surrounding context (e.g. one line above/below) to make old_str unique if the target text appears multiple times.
-- Pay close attention to whitespace: leading spaces, trailing spaces, blank lines, and indentation must match exactly.
-- If str_replace fails with "old_str not found", carefully re-read the file content and try again with the corrected string.
-- Make multiple small str_replace calls rather than one large replacement.
+- Copy old_str directly from the file content in context. Never retype or paraphrase.
+- Keep old_str SHORT (1-3 lines) and unique in the file.
+- If old_str appears multiple times, include one surrounding line to disambiguate.
+- Whitespace must match exactly: leading spaces, trailing spaces, blank lines, indentation.
+- If str_replace fails, re-read the file and try again with the corrected string.
 
 ## LaTeX special characters
 
@@ -30,26 +26,9 @@ When writing or rewriting LaTeX content, always escape special characters:
 
 Be concise and action-oriented. Default to under ~120 words unless the user asks for more detail.
 
-## Summary block (required)
-
-At the end of every response, append a short summary block delimited exactly like this:
-
-[[SUMMARY]]
-Goal: ...
-Progress: ...
-Decisions: ...
-Constraints: ...
-Open Questions: ...
-Next: ...
-Files: ...
-[[/SUMMARY]]
-
-Keep it under 80 words total. Use "None" if a line doesn't apply. Do not mention the summary block in the main response.
-Include any critical constraints, file paths, or open questions needed to take the next step.
-
 Only touch .tex, .bib, .cls, or .sty files.`;
 
-// ── Placeholder — replace with full language reference once docs are ready ───
+// ── itek prompt ──────────────────────────────────────────────────────────────
 
 const ITEK_SYSTEM_PROMPT = `You are an itek resume editing assistant built into IntelliTex.
 
@@ -57,9 +36,9 @@ itek is a lightweight plain-text resume language that transpiles to LaTeX. You e
 
 ## itek language reference
 
-Use the lookup_itek_reference tool to look up itek syntax, section definitions, fields, and examples before editing. Topics you can look up: grammar, socials, education, experience, leadership, projects, skills, special, all.
+Use the lookup_itek_reference tool to look up itek syntax, section definitions, fields, and examples. Topics: grammar, socials, education, experience, leadership, projects, skills, special, all.
 
-When you encounter an itek question or need to edit a .itek file, call lookup_itek_reference first to confirm the correct syntax and available fields.
+If a relevant itek reference section is already provided in context, do NOT call lookup_itek_reference — use what's there.
 
 ## Compilation
 
@@ -68,52 +47,112 @@ compile_file handles the full .itek → LaTeX → PDF pipeline automatically. Yo
 Compile errors reference the generated LaTeX, not the .itek source. If a compile error mentions a line number, it refers to the intermediate LaTeX — look at the content of the .itek file to find the corresponding source and fix it there.
 
 For editing tasks:
-1. Call lookup_itek_reference to confirm syntax for the section you're editing.
-2. If no file content is provided in context, call read_file.
+1. The file content is already loaded in context — do NOT call read_file unless you need to re-read after making edits.
+2. Check if the relevant itek reference section is in context. Only call lookup_itek_reference if it is not.
 3. Make changes with str_replace or line_replace.
 4. Call compile_file to verify the result.
 5. If compilation fails, fix the .itek source and compile again.
-6. Minimize context usage: prefer read_file with startLine/endLine for only the relevant sections, and avoid dumping entire files unless necessary.
 
 ## Critical rules for str_replace
 
-- Copy old_str exactly from the file content — every space and newline must match.
+- Copy old_str exactly from the file content in context — every space and newline must match.
 - Keep old_str short (1-3 lines) and unique.
 - If str_replace fails, re-read the file and try again with the corrected string.
 
-Be concise and action-oriented.
+Be concise and action-oriented. Only touch .itek files.`;
+
+// ── Summary instruction (appended only for multi-turn conversations) ─────────
+
+const SUMMARY_INSTRUCTION = `
 
 ## Summary block (required)
 
-At the end of every response, append a short summary block delimited exactly like this:
+At the end of your response, append a summary block:
 
 [[SUMMARY]]
-Goal: ...
-Progress: ...
-Decisions: ...
-Constraints: ...
-Open Questions: ...
-Next: ...
-Files: ...
+Goal: ... | Progress: ... | Decisions: ... | Next: ... | Files: ...
 [[/SUMMARY]]
 
-Keep it under 80 words total. Use "None" if a line doesn't apply. Do not mention the summary block in the main response.
-Include any critical constraints, file paths, or open questions needed to take the next step.
-
-Only touch .itek files.`;
+Keep it under 40 words total. Use "None" for empty fields. Do not mention the summary in the main response.`;
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
-function getSystemPrompt(filePath) {
-  if (filePath && filePath.endsWith('.itek')) return ITEK_SYSTEM_PROMPT;
-  return TEX_SYSTEM_PROMPT;
+function getSystemPrompt(filePath, hasHistory) {
+  let prompt;
+  if (filePath && filePath.endsWith('.itek')) {
+    prompt = ITEK_SYSTEM_PROMPT;
+  } else {
+    prompt = TEX_SYSTEM_PROMPT;
+  }
+  // Only add summary overhead for multi-turn conversations where we need
+  // context carry-over. One-shot tasks don't need it.
+  if (hasHistory) {
+    prompt += SUMMARY_INSTRUCTION;
+  }
+  return prompt;
 }
 
+// ── Context builder ──────────────────────────────────────────────────────────
+
+const MAX_INLINE_LINES = 300;
+const WINDOW_BEFORE = 30;
+const WINDOW_AFTER = 30;
+
+function formatLines(lines, offset) {
+  return lines.map((l, i) => `${offset + i}: ${l}`).join('\n');
+}
+
+/**
+ * Build the dynamic context message injected alongside the system prompt.
+ *
+ * Key optimization: we inject the file content directly so the model never
+ * needs to waste a round-trip calling read_file on the first turn.
+ * For files with a selection, we send a focused window around the selection
+ * instead of the entire file.
+ */
 function buildContext(context) {
   const parts = [];
-  if (context.summary) parts.push(`Summary:\n${context.summary}`);
+
+  if (context.summary) parts.push(`Previous conversation summary:\n${context.summary}`);
   if (context.filePath) parts.push(`File: ${context.filePath}`);
-  if (context.selection) parts.push(`\nSelected lines: ${context.selection.startLine} to ${context.selection.endLine}`);
+
+  // ── Inject file content ────────────────────────────────────────────────
+  if (context.content) {
+    const lines = context.content.split('\n');
+    const totalLines = lines.length;
+
+    if (context.selection && totalLines > MAX_INLINE_LINES) {
+      // Selection-based windowing: show a focused region around the selection
+      const selStart = Math.max(1, context.selection.startLine);
+      const selEnd = Math.min(totalLines, context.selection.endLine);
+      const winStart = Math.max(1, selStart - WINDOW_BEFORE);
+      const winEnd = Math.min(totalLines, selEnd + WINDOW_AFTER);
+      const slice = lines.slice(winStart - 1, winEnd);
+      parts.push(`\nFile content (lines ${winStart}-${winEnd} of ${totalLines}, around selection ${selStart}-${selEnd}):`);
+      parts.push(formatLines(slice, winStart));
+      parts.push(`(Use read_file with startLine/endLine if you need lines outside this range.)`);
+    } else if (totalLines <= MAX_INLINE_LINES) {
+      // Small file: inline the whole thing
+      parts.push(`\nFile content (${totalLines} lines):`);
+      parts.push(formatLines(lines, 1));
+    } else {
+      // Large file, no selection: show head + tail
+      const HEAD = 200;
+      const TAIL = 60;
+      const tailStart = Math.max(HEAD + 1, totalLines - TAIL + 1);
+      parts.push(`\nFile content (${totalLines} lines, showing 1-${HEAD} and ${tailStart}-${totalLines}):`);
+      parts.push(formatLines(lines.slice(0, HEAD), 1));
+      parts.push(`... lines ${HEAD + 1}-${tailStart - 1} omitted (use read_file with startLine/endLine) ...`);
+      parts.push(formatLines(lines.slice(tailStart - 1), tailStart));
+    }
+  }
+
+  // ── Selection marker ───────────────────────────────────────────────────
+  if (context.selection) {
+    parts.push(`\nSelected lines: ${context.selection.startLine} to ${context.selection.endLine}`);
+  }
+
+  // ── Compile errors ─────────────────────────────────────────────────────
   if (context.compileErrors?.length) {
     parts.push('\nCompile errors:');
     const maxErrors = 5;
@@ -123,7 +162,38 @@ function buildContext(context) {
       parts.push(`  - (${context.compileErrors.length - maxErrors} more errors not shown)`);
     }
   }
+
   return parts.join('\n');
 }
 
-module.exports = { getSystemPrompt, buildContext };
+// ── itek reference inlining ──────────────────────────────────────────────────
+
+const itekRef = require('./itek-reference.json');
+
+/**
+ * Detect which itek sections are present in the file content and return
+ * the relevant reference snippets to inline into context.
+ * This eliminates the need for a lookup_itek_reference call on the first turn.
+ */
+function getRelevantItekReference(content) {
+  if (!content) return null;
+  const sectionPattern = /^#(\w+)/gm;
+  const found = new Set();
+  let match;
+  while ((match = sectionPattern.exec(content)) !== null) {
+    found.add(match[1].toLowerCase());
+  }
+  if (found.size === 0) return null;
+
+  const parts = [];
+  for (const name of found) {
+    const section = itekRef.sections[name];
+    if (section) {
+      parts.push(`### ${name}\n${JSON.stringify(section, null, 2)}`);
+    }
+  }
+  if (parts.length === 0) return null;
+  return `itek reference for sections in this file:\n${parts.join('\n\n')}`;
+}
+
+module.exports = { getSystemPrompt, buildContext, getRelevantItekReference };
