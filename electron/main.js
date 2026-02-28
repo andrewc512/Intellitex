@@ -186,6 +186,13 @@ const ITEK_TEMPLATE = `@resume Your Name
     stack: "Tech1, Tech2, Tech3"
     date: "Month Year"
     * What you built and its impact
+
+#leadership
+  organization Organization Name
+    role: "Your Role"
+    loc: "City, State"
+    date: "Start – Present"
+    * Your contribution or initiative here
 `;
 
 ipcMain.handle("file:newItek", async () => {
@@ -256,7 +263,7 @@ ipcMain.handle("file:getRecents", async () => {
       await fs.access(p);
       existing.push(p);
     } catch {
-      // file no longer on disk — drop it
+      // file no longer exists — skip
     }
   }
   if (existing.length !== recents.length) {
