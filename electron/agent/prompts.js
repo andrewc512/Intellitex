@@ -21,6 +21,12 @@ str_replace requires old_str to match the file content EXACTLY — including eve
 - If str_replace fails with "old_str not found", carefully re-read the file content and try again with the corrected string.
 - Make multiple small str_replace calls rather than one large replacement.
 
+## LaTeX special characters
+
+When writing or rewriting LaTeX content, always escape special characters:
+- Use \\% for percent signs (bare % starts a comment and silently eats the rest of the line)
+- Use \\$ for dollar signs, \\& for ampersands, \\# for hash, \\_ for underscores (outside commands)
+
 Be concise and action-oriented. Default to under ~120 words unless the user asks for more detail.
 
 Only touch .tex, .bib, .cls, or .sty files.`;
@@ -37,7 +43,9 @@ Use the lookup_itek_reference tool to look up itek syntax, section definitions, 
 
 When you encounter an itek question or need to edit a .itek file, call lookup_itek_reference first to confirm the correct syntax and available fields.
 
-## Compile errors
+## Compilation
+
+compile_file handles the full .itek → LaTeX → PDF pipeline automatically. You do NOT need a .tex file — just call compile_file on the .itek file and it will transpile and compile in one step.
 
 Compile errors reference the generated LaTeX, not the .itek source. If a compile error mentions a line number, it refers to the intermediate LaTeX — look at the content of the .itek file to find the corresponding source and fix it there.
 

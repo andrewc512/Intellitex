@@ -1,0 +1,75 @@
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage[empty]{fullpage}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage[english]{babel}
+
+\setlength{\oddsidemargin}{-0.5in}
+\setlength{\evensidemargin}{-0.5in}
+\setlength{\textwidth}{7.5in}
+\setlength{\topmargin}{-0.5in}
+\setlength{\textheight}{10in}
+
+\begin{document}
+
+%----------HEADING----------
+\begin{center}
+    \textbf{\Huge John Doe} \\
+    \vspace{2pt}
+    \small (555) 123-4567 $|$
+    \href{mailto:johndoe@email.com}{johndoe@email.com} $|$
+    \href{https://linkedin.com/in/johndoe}{linkedin.com/in/johndoe} $|$
+    \href{https://github.com/johndoe}{github.com/johndoe}
+\end{center}
+
+%-----------EDUCATION-----------
+\section*{Education}
+\textbf{University of California, Berkeley} \hfill Berkeley, CA \\
+\textit{B.S. Computer Science, GPA: 3.82} \hfill Expected May 2026 \\
+\small{Relevant Coursework: Data Structures, Algorithms, Operating Systems, Machine Learning}
+
+\vspace{6pt}
+
+%-----------EXPERIENCE-----------
+\section*{Experience}
+\textbf{Acme Corp} \hfill San Francisco, CA \\
+\textit{Software Engineering Intern} \hfill June 2025 -- Sep. 2025
+\begin{itemize}[leftmargin=0.15in, label=\textbullet]
+    \item Developed REST APIs using Python and Flask, handling 50k+ requests daily
+    \item Implemented CI/CD pipeline with GitHub Actions, reducing deploy time by 40\%
+    \item Wrote unit tests achieving 95\% code coverage across 3 microservices
+\end{itemize}
+
+\textbf{StartupXYZ} \hfill Remote \\
+\textit{Frontend Developer} \hfill Jan. 2025 -- May 2025
+\begin{itemize}[leftmargin=0.15in, label=\textbullet]
+    \item Built responsive dashboard using React and TypeScript for 2,000+ users
+    \item Optimized bundle size by 35\% through code splitting and lazy loading
+\end{itemize}
+
+\vspace{6pt}
+
+%-----------PROJECTS-----------
+\section*{Projects}
+\textbf{TaskFlow} $|$ \textit{React, Node.js, PostgreSQL} \hfill Oct. 2024
+\begin{itemize}[leftmargin=0.15in, label=\textbullet]
+    \item Built full-stack task management app with real-time collaboration features
+    \item Deployed on AWS with auto-scaling, supporting 500+ concurrent users
+\end{itemize}
+
+\textbf{CodeReview Bot} $|$ \textit{Python, OpenAI API, GitHub API} \hfill Aug. 2024
+\begin{itemize}[leftmargin=0.15in, label=\textbullet]
+    \item Created GitHub bot that automatically reviews PRs using GPT-4
+    \item Integrated with Slack for notifications, used by 15 team members
+\end{itemize}
+
+\vspace{6pt}
+
+%-----------SKILLS-----------
+\section*{Skills}
+\textbf{Languages:} Python, JavaScript, TypeScript, Java, C++, SQL \\
+\textbf{Frameworks:} React, Node.js, Flask, Django, TailwindCSS \\
+\textbf{Tools:} Git, Docker, AWS, PostgreSQL, MongoDB, Redis
+
+\end{document}
