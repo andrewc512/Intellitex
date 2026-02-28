@@ -42,50 +42,56 @@ export function WelcomeScreen({
         </p>
 
         <div className="welcome-actions">
-          <button
-            type="button"
-            className="welcome-btn"
-            onClick={onOpenFile}
-            aria-label="Open an existing LaTeX file"
-          >
-            <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            Open File
-          </button>
-          <button
-            type="button"
-            className="welcome-btn"
-            onClick={onNewFile}
-            aria-label="Create a new LaTeX file"
-          >
-            <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="12" y1="18" x2="12" y2="12"/>
-              <line x1="9" y1="15" x2="15" y2="15"/>
-            </svg>
-            New File
-            <span className="welcome-btn-badge">.tex</span>
-          </button>
-          <button
-            type="button"
-            className="welcome-btn welcome-btn--accent"
-            onClick={onNewItekFile}
-            aria-label="Create a new itek resume"
-          >
-            <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-              <line x1="9" y1="12" x2="15" y2="12"/>
-              <line x1="9" y1="16" x2="13" y2="16"/>
-            </svg>
-            New Resume
-            <span className="welcome-btn-badges">
-              <span className="welcome-btn-badge">.itek</span>
-              <span className="welcome-btn-badge welcome-btn-badge--beta">Beta</span>
-            </span>
-          </button>
+          <span className="welcome-btn-wrap" data-tooltip="Open any .tex or .itek file from your computer">
+            <button
+              type="button"
+              className="welcome-btn"
+              onClick={onOpenFile}
+              aria-label="Open an existing LaTeX file"
+            >
+              <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              Open File
+            </button>
+          </span>
+          <span className="welcome-btn-wrap" data-tooltip="Full LaTeX — total layout control, bring your own template">
+            <button
+              type="button"
+              className="welcome-btn"
+              onClick={onNewFile}
+              aria-label="Create a new LaTeX file"
+            >
+              <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+              New File
+              <span className="welcome-btn-badge">.tex</span>
+            </button>
+          </span>
+          <span className="welcome-btn-wrap" data-tooltip="Clean syntax, ATS-friendly output, auto-fitted to one page">
+            <button
+              type="button"
+              className="welcome-btn welcome-btn--accent"
+              onClick={onNewItekFile}
+              aria-label="Create a new itek resume"
+            >
+              <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                <line x1="9" y1="12" x2="15" y2="12"/>
+                <line x1="9" y1="16" x2="13" y2="16"/>
+              </svg>
+              New Resume
+              <span className="welcome-btn-badges">
+                <span className="welcome-btn-badge">.itek</span>
+                <span className="welcome-btn-badge welcome-btn-badge--beta">Beta</span>
+              </span>
+            </button>
+          </span>
         </div>
 
         {recents.length > 0 && (
