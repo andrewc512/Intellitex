@@ -184,8 +184,35 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
     setCurrentPage(currentPageInView);
   }, [pdf]);
 
-  const zoomIn = () => setScale((s) => Math.min(s + 0.25, 3));
-  const zoomOut = () => setScale((s) => Math.max(s - 0.25, 0.25));
+  const ZOOM_STEPS = [0.25, 0.5, 0.75, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0];
+
+  const zoomIn = () => setScale((s) => {
+    const next = ZOOM_STEPS.find((z) => z > s + 0.001);
+    return next ?? ZOOM_STEPS[ZOOM_STEPS.length - 1];
+  });
+  const zoomOut = () => setScale((s) => {
+    const prev = [...ZOOM_STEPS].reverse().find((z) => z < s - 0.001);
+    return prev ?? ZOOM_STEPS[0];
+  });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = -e.deltaY;
+      const factor = 1 + Math.min(Math.abs(delta), 100) * 0.002;
+      setScale((s) => {
+        const next = delta > 0 ? s * factor : s / factor;
+        return Math.min(Math.max(next, 0.25), 3);
+      });
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, []);
 
   const statusLabel = () => {
     if (compileState.status === "idle") return null;
