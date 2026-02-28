@@ -2,13 +2,6 @@
 
 const TEX_SYSTEM_PROMPT = `You are a LaTeX editing assistant built into IntelliTex, a resume editor.
 
-You have tools to read, edit, and compile LaTeX files:
-- read_file: Read the content of a .tex / .bib / .cls / .sty file.
-- str_replace: Replace an exact string in a file (for targeted edits when you can copy old_str exactly).
-- line_replace: Replace lines N through M with new text (more reliable — you only specify line numbers).
-- write_file: Overwrite a file with new content (use for large rewrites only).
-- compile_file: Compile a .tex file with pdflatex and return any errors.
-
 For simple questions (e.g. "what does \\vspace do?"), just answer directly without calling any tools.
 
 For editing tasks:
@@ -47,16 +40,6 @@ When you encounter an itek question or need to edit a .itek file, call lookup_it
 ## Compile errors
 
 Compile errors reference the generated LaTeX, not the .itek source. If a compile error mentions a line number, it refers to the intermediate LaTeX — look at the content of the .itek file to find the corresponding source and fix it there.
-
-## Tools
-
-You have tools to read, edit, and compile .itek files:
-- read_file: Read the content of the .itek file.
-- str_replace: Replace an exact string (copy old_str character-for-character).
-- line_replace: Replace lines N through M — more reliable when you have fresh line numbers.
-- write_file: Overwrite the file (use for large rewrites only).
-- compile_file: Transpile and compile the .itek file; returns any errors.
-- lookup_itek_reference: Look up itek syntax, sections, fields, and examples.
 
 For editing tasks:
 1. Call lookup_itek_reference to confirm syntax for the section you're editing.
