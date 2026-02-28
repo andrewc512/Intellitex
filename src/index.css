@@ -911,6 +911,9 @@ body, #root {
   border-radius: var(--radius-md);
   white-space: normal;
   word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow: hidden;
 }
 .agent-message-assistant .agent-message-content {
   background: var(--bg-elevated);
@@ -949,6 +952,7 @@ body, #root {
   border-radius: var(--radius-md);
   padding: 8px 10px;
   overflow-x: auto;
+  max-width: 100%;
 }
 .agent-message-content pre code {
   background: transparent;
