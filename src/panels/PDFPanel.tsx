@@ -40,6 +40,7 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorsCollapsed, setErrorsCollapsed] = useState(false);
   const canvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const renderTasksRef = useRef<Map<number, { cancel: () => void }>>(new Map());
 
@@ -202,6 +203,7 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
   };
 
   const hasErrors = compileState.status === "done" && !compileState.result.success;
+  const hasAnyDiagnostics = compileState.status === "done" && compileState.result.errors.length > 0;
 
   return (
     <div className="panel" role="region" aria-label="PDF Preview">
@@ -273,7 +275,7 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
           className="pdf-viewer"
           onScroll={handleScroll}
           style={{
-            flex: hasErrors ? "0 0 60%" : 1,
+            flex: (hasErrors && !errorsCollapsed) ? "0 0 60%" : 1,
             overflow: "auto",
             background: "var(--bg-base)",
           }}
@@ -361,18 +363,40 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
         </div>
 
         {/* Error list */}
-        {compileState.status === "done" && compileState.result.errors.length > 0 && (
-          <div className="pdf-errors">
-            <div className="pdf-errors-header">
-              {errors.length > 0 && `${errors.length} error${errors.length !== 1 ? "s" : ""}`}
-              {errors.length > 0 && warnings.length > 0 && "  ·  "}
-              {warnings.length > 0 && `${warnings.length} warning${warnings.length !== 1 ? "s" : ""}`}
-            </div>
-            <div className="pdf-errors-list">
-              {compileState.result.errors.map((err, i) => (
-                <ErrorRow key={i} err={err} />
-              ))}
-            </div>
+        {hasAnyDiagnostics && (
+          <div className={`pdf-errors ${errorsCollapsed ? "pdf-errors--collapsed" : ""}`}>
+            <button
+              className="pdf-errors-header"
+              type="button"
+              onClick={() => setErrorsCollapsed((c) => !c)}
+              aria-expanded={!errorsCollapsed}
+              aria-controls="pdf-errors-list"
+            >
+              <svg
+                className={`pdf-errors-chevron ${errorsCollapsed ? "" : "pdf-errors-chevron--open"}`}
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+              <span>
+                {errors.length > 0 && `${errors.length} error${errors.length !== 1 ? "s" : ""}`}
+                {errors.length > 0 && warnings.length > 0 && "  ·  "}
+                {warnings.length > 0 && `${warnings.length} warning${warnings.length !== 1 ? "s" : ""}`}
+              </span>
+            </button>
+            {!errorsCollapsed && (
+              <div className="pdf-errors-list" id="pdf-errors-list">
+                {compileState.result.errors.map((err, i) => (
+                  <ErrorRow key={i} err={err} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

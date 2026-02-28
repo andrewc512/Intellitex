@@ -731,13 +731,41 @@ body, #root {
   background: var(--bg-surface);
 }
 
+.pdf-errors--collapsed {
+  flex: 0 0 auto;
+}
+
 .pdf-errors-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
   padding: 6px 12px;
   font-size: 11px;
+  font-family: inherit;
   color: var(--text-tertiary);
+  border: none;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-elevated);
   flex-shrink: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.pdf-errors-header:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.pdf-errors-chevron {
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+  transform: rotate(-90deg);
+}
+
+.pdf-errors-chevron--open {
+  transform: rotate(0deg);
 }
 
 .pdf-errors-list {
@@ -967,7 +995,7 @@ body, #root {
 
 .agent-input-wrapper {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   padding: 4px 4px 4px 14px;
   background: var(--bg-base);
@@ -989,6 +1017,10 @@ body, #root {
   background: transparent;
   border: none;
   outline: none;
+  resize: none;
+  max-height: 150px;
+  overflow-y: auto;
+  line-height: 1.5;
 }
 .agent-input::placeholder {
   color: var(--text-tertiary);
