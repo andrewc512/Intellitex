@@ -131,9 +131,10 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
             }
           }
           // 2. Find any existing assistant message from this request to update
-          const existingIdx = prev.findLastIndex(
-            (m) => m.role === "assistant" && m.requestId === reqId
-          );
+          let existingIdx = -1;
+          for (let j = prev.length - 1; j >= 0; j--) {
+            if (prev[j].role === "assistant" && prev[j].requestId === reqId) { existingIdx = j; break; }
+          }
           if (existingIdx !== -1) {
             const next = [...prev];
             next[existingIdx] = { ...next[existingIdx], content: res.message, requestId: reqId };
