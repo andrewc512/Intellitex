@@ -1052,6 +1052,57 @@ body, #root {
   cursor: not-allowed;
 }
 
+/* ── Agent Attachment Chip ─────────────────── */
+
+.agent-attachment {
+  padding: 0 0 6px 0;
+}
+
+.agent-attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 10px;
+  background: var(--accent-muted);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.agent-attachment-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.agent-attachment-label {
+  white-space: nowrap;
+}
+
+.agent-attachment-dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.agent-attachment-dismiss:hover {
+  opacity: 1;
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ── Welcome Screen ────────────────────────── */
 
 @keyframes welcome-fade-up {

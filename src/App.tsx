@@ -7,6 +7,7 @@ import { WelcomeScreen } from "./components/WelcomeScreen";
 import { useTheme } from "./hooks/useTheme";
 import { ThemeDropdown } from "./components/ThemeDropdown";
 import type { CompileStatus } from "./compiler/types";
+import type { EditorSelection } from "./agent/types";
 
 type PanelId = "editor" | "pdf" | "agent";
 
@@ -23,6 +24,17 @@ function App() {
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(["editor", "pdf", "agent"]);
   const [hiddenPanels, setHiddenPanels] = useState<Set<PanelId>>(new Set());
   const { theme, setTheme } = useTheme();
+  const [chatAttachment, setChatAttachment] = useState<EditorSelection | null>(null);
+
+  const handleAddToChat = useCallback((selection: EditorSelection) => {
+    setChatAttachment(selection);
+    setHiddenPanels((prev) => {
+      if (!prev.has("agent")) return prev;
+      const next = new Set(prev);
+      next.delete("agent");
+      return next;
+    });
+  }, []);
 
   const togglePanel = useCallback((id: PanelId) => {
     setHiddenPanels((prev) => {
@@ -238,6 +250,7 @@ function App() {
                     onChange={handleEditorChange}
                     onSave={handleSave}
                     onRename={handleRename}
+                    onAddToChat={handleAddToChat}
                     onClose={() => togglePanel("editor")}
                     onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
                     onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
@@ -263,6 +276,8 @@ function App() {
                             .map((e) => ({ file: openFile.filePath ?? "unknown", line: e.line!, message: e.message }))
                         : undefined
                     }
+                    chatAttachment={chatAttachment}
+                    onClearAttachment={() => setChatAttachment(null)}
                     onFileEdited={handleFileEdited}
                     onClose={() => togglePanel("agent")}
                     onMoveLeft={canMoveLeft ? () => movePanel("agent", -1) : undefined}

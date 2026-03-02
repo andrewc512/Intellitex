@@ -1,3 +1,9 @@
+export interface EditorSelection {
+  startLine: number;
+  endLine: number;
+  text: string;
+}
+
 export interface AgentContext {
   filePath?: string;
   content?: string;

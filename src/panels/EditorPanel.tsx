@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Editor, { type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import type { Theme } from "../hooks/useTheme";
+import type { EditorSelection } from "../agent/types";
 
 interface EditorPanelProps {
   content: string;
@@ -10,6 +11,7 @@ interface EditorPanelProps {
   onChange: (value: string) => void;
   onSave: () => void;
   onRename: (newName: string) => void;
+  onAddToChat?: (selection: EditorSelection) => void;
   onClose?: () => void;
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
@@ -48,12 +50,25 @@ function registerItekLanguage(monaco: Monaco) {
   }
 }
 
-export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
+export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename, onAddToChat, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
   const filename = filePath ? filePath.split("/").pop()! : "Untitled.tex";
   const language = getEditorLanguage(filePath);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(filename);
   const inputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const onAddToChatRef = useRef(onAddToChat);
+  onAddToChatRef.current = onAddToChat;
+
+  const getSelectionFromEditor = useCallback((): EditorSelection | null => {
+    const ed = editorRef.current;
+    if (!ed) return null;
+    const sel = ed.getSelection();
+    if (!sel || sel.isEmpty()) return null;
+    const text = ed.getModel()?.getValueInRange(sel) ?? "";
+    if (!text.trim()) return null;
+    return { startLine: sel.startLineNumber, endLine: sel.endLineNumber, text };
+  }, []);
 
   useEffect(() => {
     if (editing) {
@@ -155,11 +170,26 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
             fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace",
             fontLigatures: true,
           }}
-          onMount={(editorInstance: editor.IStandaloneCodeEditor) => {
+          onMount={(editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+            editorRef.current = editorInstance;
             editorInstance.addAction({
               id: "save-file",
               label: "Save File",
               run: onSave,
+            });
+            editorInstance.addAction({
+              id: "add-to-chat",
+              label: "Add to Chat",
+              keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyL],
+              contextMenuGroupId: "navigation",
+              contextMenuOrder: 0,
+              precondition: "editorHasSelection",
+              run: () => {
+                const selection = getSelectionFromEditor();
+                if (selection && onAddToChatRef.current) {
+                  onAddToChatRef.current(selection);
+                }
+              },
             });
           }}
         />

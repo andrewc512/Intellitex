@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
-import type { AgentContext, AgentMessage, AgentProgress, AgentResponse } from "../agent/types";
+import type { AgentContext, AgentMessage, AgentProgress, AgentResponse, EditorSelection } from "../agent/types";
 
 const QUICK_ACTIONS = [
   { label: "Optimize for ATS", icon: "/icons/icon-ats.png", prompt: "Optimize this resume for ATS." },
@@ -15,13 +15,15 @@ interface AgentPanelProps {
   filePath: string | null;
   content: string;
   compileErrors?: Array<{ file: string; line: number; message: string }>;
+  chatAttachment?: EditorSelection | null;
+  onClearAttachment?: () => void;
   onFileEdited?: (filePath: string, content: string) => void;
   onClose?: () => void;
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
 }
 
-export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onClose, onMoveLeft, onMoveRight }: AgentPanelProps) {
+export function AgentPanel({ filePath, content, compileErrors, chatAttachment, onClearAttachment, onFileEdited, onClose, onMoveLeft, onMoveRight }: AgentPanelProps) {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -84,16 +86,21 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
     streamingIndexRef.current = null;
     const requestId = activeRequestIdRef.current + 1;
     activeRequestIdRef.current = requestId;
-    setMessages((prev) => [...prev, { role: "user", content: prompt }]);
+    const displayPrompt = chatAttachment
+      ? `[Lines ${chatAttachment.startLine}–${chatAttachment.endLine}]\n${prompt}`
+      : prompt;
+    setMessages((prev) => [...prev, { role: "user", content: displayPrompt }]);
     setInputValue("");
     setIsLoading(true);
     setThinkingStatus("Analyzing your request...");
 
     try {
-      const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors, summary: summary ?? undefined };
-      // Send prior conversation turns so the agent has multi-turn memory.
-      // Filter out requestId since the backend doesn't need it.
+      const selection = chatAttachment
+        ? { startLine: chatAttachment.startLine, endLine: chatAttachment.endLine }
+        : undefined;
+      const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors, selection, summary: summary ?? undefined };
       const history = messages.map(({ role, content: c }) => ({ role, content: c }));
+      onClearAttachment?.();
       const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt, history);
 
       if (res.error) {
@@ -228,6 +235,24 @@ export function AgentPanel({ filePath, content, compileErrors, onFileEdited, onC
       )}
 
       <form className="agent-input-area" onSubmit={(e) => { e.preventDefault(); sendMessage(inputValue); }}>
+        {chatAttachment && (
+          <div className="agent-attachment">
+            <div className="agent-attachment-chip">
+              <svg className="agent-attachment-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" />
+              </svg>
+              <span className="agent-attachment-label">Lines {chatAttachment.startLine}–{chatAttachment.endLine}</span>
+              <button
+                className="agent-attachment-dismiss"
+                type="button"
+                onClick={onClearAttachment}
+                aria-label="Remove attached selection"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+        )}
         <div className="agent-input-wrapper">
           <textarea
             ref={textareaRef}
