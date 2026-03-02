@@ -4,13 +4,6 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import type { AgentContext, AgentMessage, AgentProgress, AgentResponse, EditorSelection } from "../agent/types";
 
-const QUICK_ACTIONS = [
-  { label: "Optimize for ATS", icon: "/icons/icon-ats.png", prompt: "Optimize this resume for ATS." },
-  { label: "Fix compile errors", icon: "/icons/icon-fix.png", prompt: "Fix all compile errors in this document." },
-  { label: "Improve formatting", icon: "/icons/icon-format.png", prompt: "Improve the formatting of this document." },
-  { label: "Strengthen bullet points", icon: "/icons/icon-bullets.png", prompt: "Strengthen the bullet points in this resume." },
-];
-
 interface AgentPanelProps {
   filePath: string | null;
   content: string;
@@ -198,16 +191,7 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
       {messages.length === 0 ? (
         <div className="agent-empty" role="status">
           <img className="agent-empty-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
-          <span className="agent-empty-text">How can I help with your resume?</span>
-          <span className="agent-empty-subtitle">Ask questions or use a quick action below</span>
-          <nav className="agent-quick-actions" aria-label="Suggested actions">
-            {QUICK_ACTIONS.map((a) => (
-              <button key={a.label} className="agent-quick-btn" type="button" onClick={() => sendMessage(a.prompt)} disabled={isLoading}>
-                <img className="agent-quick-btn-icon" src={a.icon} alt="" aria-hidden="true" />
-                {a.label}
-              </button>
-            ))}
-          </nav>
+          <span className="agent-empty-text">How can I help with your latex?</span>
         </div>
       ) : (
         <div className="agent-messages">
@@ -259,7 +243,7 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
             ref={textareaRef}
             className="agent-input"
             rows={1}
-            placeholder="Ask anything about your resume..."
+            placeholder="Ask me anything..."
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => {

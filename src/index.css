@@ -917,44 +917,6 @@ body, #root {
   line-height: 1.5;
 }
 
-.agent-quick-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  max-width: 240px;
-}
-
-.agent-quick-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-family: inherit;
-  font-weight: 450;
-  color: var(--text-secondary);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
-  text-align: left;
-}
-.agent-quick-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--text-tertiary);
-}
-.agent-quick-btn-icon {
-  width: 32px;
-  height: 32px;
-  margin: -6px -4px;
-  flex-shrink: 0;
-  border-radius: 3px;
-  object-fit: contain;
-}
-
 .agent-message {
   display: flex;
   align-items: flex-start;
