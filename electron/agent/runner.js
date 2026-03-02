@@ -2,13 +2,13 @@ const OpenAI = require('openai');
 const { definitions, executeTool } = require('./tools');
 const { getSystemPrompt, buildContext, getRelevantItekReference } = require('./prompts');
 
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
 const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
-const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '4096', 10);
+const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '16384', 10);
 const MAX_HISTORY_TURNS = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS || '8', 10);
-const MAX_HISTORY_TURNS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS_SUMMARIZED || '2', 10);
-const MAX_HISTORY_CHARS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_CHARS_SUMMARIZED || '800', 10);
+const MAX_HISTORY_TURNS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS_SUMMARIZED || '4', 10);
+const MAX_HISTORY_CHARS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_CHARS_SUMMARIZED || '2000', 10);
 
 /**
  * Agentic loop with tool support.
@@ -30,6 +30,9 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
   const editedFiles = {};
 
   let lastAssistant = null;
+  // Track assistant + tool messages from this agentic session so we can
+  // replay them after rebuilding the base messages with fresh file content.
+  const agentTurns = [];
 
   for (let i = 0; i < MAX_ITERATIONS; i += 1) {
     const step = i + 1;
@@ -41,12 +44,15 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
 
     const assistant = await callOpenAIStream(messages, toolDefs, apiKey, progress);
     messages.push(assistant);
+    agentTurns.push(assistant);
     lastAssistant = assistant;
 
     if (!assistant.tool_calls || assistant.tool_calls.length === 0) {
       const { cleaned, summary } = extractSummaryBlock(assistant.content ?? '');
       return { message: cleaned, summary, editedFiles };
     }
+
+    let hadError = false;
 
     for (const tc of assistant.tool_calls) {
       const toolName = tc.function.name;
@@ -61,12 +67,43 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
         editedFiles[args.path] = result.newContent;
       }
 
+      if (result.error) hadError = true;
+
       // Send a concise result to the model — strip full file content to avoid
       // bloating the conversation context and wasting tokens.
       const toolResponse = { ...result };
       delete toolResponse.newContent;
 
-      messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResponse) });
+      const toolMsg = { role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResponse) };
+      messages.push(toolMsg);
+      agentTurns.push(toolMsg);
+    }
+
+    // ── Re-inject fresh file content after edits ──────────────────────
+    // Update context.content so the next iteration sees the latest file state,
+    // then rebuild the base messages (system + context + history) from scratch.
+    for (const [fp, content] of Object.entries(editedFiles)) {
+      if (fp === context.filePath) {
+        context.content = content;
+      }
+    }
+    messages.length = 0;
+    messages.push(...buildMessages(context, userPrompt, history));
+    messages.push(...agentTurns);
+
+    // If a tool call failed, inject the current file content so the model
+    // can see exactly what's in the file and self-correct on the next attempt.
+    if (hadError) {
+      const lines = context.content ? context.content.split('\n') : [];
+      const numberedContent = lines.map((l, i) => `${i + 1}: ${l}`).join('\n');
+      const recovery = {
+        role: 'system',
+        content:
+          'A tool call failed. Here is the CURRENT file content — read it carefully before retrying. ' +
+          'Copy strings exactly as they appear below.\n\n' +
+          `Current file content (${lines.length} lines):\n${numberedContent}`,
+      };
+      messages.push(recovery);
     }
   }
 
@@ -163,17 +200,24 @@ function buildMessage(content, toolCallsByIndex) {
   return msg;
 }
 
+function stripThinkBlocks(text) {
+  if (!text) return text;
+  return text.replace(/<think>[\s\S]*?<\/think>\s*/g, '');
+}
+
 function extractSummaryBlock(content) {
   const startToken = '[[SUMMARY]]';
   const endToken = '[[/SUMMARY]]';
   if (!content) return { cleaned: '', summary: null };
-  const start = content.lastIndexOf(startToken);
-  const end = content.lastIndexOf(endToken);
+  // Strip <think> blocks before returning to user
+  let text = stripThinkBlocks(content);
+  const start = text.lastIndexOf(startToken);
+  const end = text.lastIndexOf(endToken);
   if (start === -1 || end === -1 || end <= start) {
-    return { cleaned: content.trim(), summary: null };
+    return { cleaned: text.trim(), summary: null };
   }
-  const summary = content.slice(start + startToken.length, end).trim();
-  const cleaned = (content.slice(0, start) + content.slice(end + endToken.length)).trim();
+  const summary = text.slice(start + startToken.length, end).trim();
+  const cleaned = (text.slice(0, start) + text.slice(end + endToken.length)).trim();
   return { cleaned, summary: summary || null };
 }
 

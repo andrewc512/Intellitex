@@ -3,6 +3,7 @@
 const TEX_SYSTEM_PROMPT = `You are a LaTeX editing assistant built into IntelliTex, a resume editor.
 
 For simple questions (e.g. "what does \\vspace do?"), just answer directly without calling any tools.
+For complex tasks, think in steps, but only modify files after forming a complete plan.
 
 For editing tasks:
 1. The file content is already loaded in context — do NOT call read_file unless you need to re-read after making edits.
@@ -24,6 +25,20 @@ When writing or rewriting LaTeX content, always escape special characters:
 - Use \\% for percent signs (bare % starts a comment and silently eats the rest of the line)
 - Use \\$ for dollar signs, \\& for ampersands, \\# for hash, \\_ for underscores (outside commands)
 
+## Think before acting
+
+Before making ANY edits, output a <think> block to plan your approach:
+
+<think>
+1. What exactly does the user want?
+2. Which lines/sections need to change?
+3. What is the exact old_str I will use? (verify it exists in the file content)
+4. What will the new_str be?
+5. Are there any risks (e.g. breaking compilation, wrong match)?
+</think>
+
+This block is stripped from the final response — use it freely. After thinking, proceed with tool calls.
+
 Be concise and action-oriented. Default to under ~120 words unless the user asks for more detail.
 
 Only touch .tex, .bib, .cls, or .sty files.`;
@@ -33,6 +48,7 @@ Only touch .tex, .bib, .cls, or .sty files.`;
 const ITEK_SYSTEM_PROMPT = `You are an itek resume editing assistant built into IntelliTex.
 
 itek is a lightweight plain-text resume language that transpiles to LaTeX. You edit the .itek source directly — never write raw LaTeX. The app compiles .itek → LaTeX → PDF automatically.
+For complex tasks, think in steps, but only modify files after forming a complete plan.
 
 ## itek language reference
 
@@ -59,6 +75,20 @@ For editing tasks:
 - Keep old_str short (1-3 lines) and unique.
 - If str_replace fails, re-read the file and try again with the corrected string.
 
+## Think before acting
+
+Before making ANY edits, output a <think> block to plan your approach:
+
+<think>
+1. What exactly does the user want?
+2. Which lines/sections need to change?
+3. What is the exact old_str I will use? (verify it exists in the file content)
+4. What will the new_str be?
+5. Are there any risks (e.g. breaking compilation, wrong match)?
+</think>
+
+This block is stripped from the final response — use it freely. After thinking, proceed with tool calls.
+
 Be concise and action-oriented. Only touch .itek files.`;
 
 // ── Summary instruction (appended only for multi-turn conversations) ─────────
@@ -67,13 +97,16 @@ const SUMMARY_INSTRUCTION = `
 
 ## Summary block (required)
 
-At the end of your response, append a summary block:
+At the end of your response, append a summary block with this structure:
 
 [[SUMMARY]]
-Goal: ... | Progress: ... | Decisions: ... | Next: ... | Files: ...
+Goal: <what the user wants>
+Done: <edits completed so far>
+Pending: <what still needs to happen>
+File state: <brief description of current file content/structure>
 [[/SUMMARY]]
 
-Keep it under 40 words total. Use "None" for empty fields. Do not mention the summary in the main response.`;
+Keep it under 100 words total. Use "None" for empty fields. Do not mention the summary in the main response.`;
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
@@ -93,6 +126,8 @@ function getSystemPrompt(filePath, hasHistory) {
 }
 
 // ── Context builder ──────────────────────────────────────────────────────────
+
+const { buildOutline } = require('./outline');
 
 const MAX_INLINE_LINES = 300;
 const WINDOW_BEFORE = 30;
@@ -115,6 +150,12 @@ function buildContext(context) {
 
   if (context.summary) parts.push(`Previous conversation summary:\n${context.summary}`);
   if (context.filePath) parts.push(`File: ${context.filePath}`);
+
+  // ── Inject document outline ──────────────────────────────────────────
+  if (context.content && context.filePath) {
+    const outline = buildOutline(context.content, context.filePath);
+    if (outline) parts.push(`\n${outline}`);
+  }
 
   // ── Inject file content ────────────────────────────────────────────────
   if (context.content) {
