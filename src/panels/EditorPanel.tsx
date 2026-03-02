@@ -1,8 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import Editor, { type Monaco } from "@monaco-editor/react";
+import Editor, { DiffEditor, type Monaco } from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import type { Theme } from "../hooks/useTheme";
 import type { EditorSelection } from "../agent/types";
+
+interface PendingDiff {
+  filePath: string;
+  original: string;
+  modified: string;
+}
 
 interface EditorPanelProps {
   content: string;
@@ -12,6 +18,9 @@ interface EditorPanelProps {
   onSave: () => void;
   onRename: (newName: string) => void;
   onAddToChat?: (selection: EditorSelection) => void;
+  pendingDiff?: PendingDiff | null;
+  onAcceptDiff?: () => void;
+  onDiscardDiff?: () => void;
   onClose?: () => void;
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
@@ -50,7 +59,7 @@ function registerItekLanguage(monaco: Monaco) {
   }
 }
 
-export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename, onAddToChat, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
+export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename, onAddToChat, pendingDiff, onAcceptDiff, onDiscardDiff, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
   const filename = filePath ? filePath.split("/").pop()! : "Untitled.tex";
   const language = getEditorLanguage(filePath);
   const [editing, setEditing] = useState(false);
@@ -149,50 +158,98 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
           )}
         </div>
       </div>
+      {pendingDiff && (
+        <div className="diff-review-bar">
+          <div className="diff-review-info">
+            <svg className="diff-review-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 3v14" /><path d="m5 10 7 7 7-7" />
+            </svg>
+            <span className="diff-review-text">Review agent changes</span>
+          </div>
+          <div className="diff-review-actions">
+            <button className="diff-review-btn diff-review-btn--discard" type="button" onClick={onDiscardDiff}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+              Discard
+            </button>
+            <button className="diff-review-btn diff-review-btn--accept" type="button" onClick={onAcceptDiff}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Accept
+            </button>
+          </div>
+        </div>
+      )}
       <div className="panel-body">
-        <Editor
-          height="100%"
-          language={language}
-          theme={theme === "light" || theme === "muted" ? "light" : "vs-dark"}
-          value={content}
-          onChange={(val) => onChange(val ?? "")}
-          beforeMount={(monaco) => registerItekLanguage(monaco)}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            wordWrap: "on",
-            lineNumbers: "on",
-            scrollBeyondLastLine: false,
-            padding: { top: 12 },
-            renderLineHighlight: "gutter",
-            cursorBlinking: "smooth",
-            smoothScrolling: true,
-            fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace",
-            fontLigatures: true,
-          }}
-          onMount={(editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
-            editorRef.current = editorInstance;
-            editorInstance.addAction({
-              id: "save-file",
-              label: "Save File",
-              run: onSave,
-            });
-            editorInstance.addAction({
-              id: "add-to-chat",
-              label: "Add to Chat",
-              keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyL],
-              contextMenuGroupId: "navigation",
-              contextMenuOrder: 0,
-              precondition: "editorHasSelection",
-              run: () => {
-                const selection = getSelectionFromEditor();
-                if (selection && onAddToChatRef.current) {
-                  onAddToChatRef.current(selection);
-                }
-              },
-            });
-          }}
-        />
+        {pendingDiff ? (
+          <DiffEditor
+            height="100%"
+            language={language}
+            theme={theme === "light" || theme === "muted" ? "light" : "vs-dark"}
+            original={pendingDiff.original}
+            modified={pendingDiff.modified}
+            beforeMount={(monaco) => registerItekLanguage(monaco)}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              fontSize: 14,
+              wordWrap: "on",
+              lineNumbers: "on",
+              scrollBeyondLastLine: false,
+              padding: { top: 12 },
+              renderSideBySide: true,
+              smoothScrolling: true,
+              fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace",
+              fontLigatures: true,
+            }}
+          />
+        ) : (
+          <Editor
+            height="100%"
+            language={language}
+            theme={theme === "light" || theme === "muted" ? "light" : "vs-dark"}
+            value={content}
+            onChange={(val) => onChange(val ?? "")}
+            beforeMount={(monaco) => registerItekLanguage(monaco)}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              wordWrap: "on",
+              lineNumbers: "on",
+              scrollBeyondLastLine: false,
+              padding: { top: 12 },
+              renderLineHighlight: "gutter",
+              cursorBlinking: "smooth",
+              smoothScrolling: true,
+              fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace",
+              fontLigatures: true,
+            }}
+            onMount={(editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+              editorRef.current = editorInstance;
+              editorInstance.addAction({
+                id: "save-file",
+                label: "Save File",
+                run: onSave,
+              });
+              editorInstance.addAction({
+                id: "add-to-chat",
+                label: "Add to Chat",
+                keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyL],
+                contextMenuGroupId: "navigation",
+                contextMenuOrder: 0,
+                precondition: "editorHasSelection",
+                run: () => {
+                  const selection = getSelectionFromEditor();
+                  if (selection && onAddToChatRef.current) {
+                    onAddToChatRef.current(selection);
+                  }
+                },
+              });
+            }}
+          />
+        )}
       </div>
     </div>
   );

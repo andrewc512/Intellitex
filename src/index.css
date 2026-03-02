@@ -606,6 +606,78 @@ body, #root {
   box-shadow: 0 0 0 3px var(--accent-muted);
 }
 
+/* ── Diff Review Bar ──────────────────────── */
+
+.diff-review-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--accent-muted);
+  border-bottom: 1px solid var(--accent);
+  flex-shrink: 0;
+}
+
+.diff-review-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.diff-review-icon {
+  color: var(--accent-text);
+  flex-shrink: 0;
+}
+
+.diff-review-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+.diff-review-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diff-review-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.diff-review-btn--discard {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  color: var(--text-secondary);
+}
+.diff-review-btn--discard:hover {
+  background: var(--error-muted);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+.diff-review-btn--accept {
+  background: var(--success);
+  border: 1px solid var(--success);
+  color: #fff;
+}
+.diff-review-btn--accept:hover {
+  filter: brightness(1.1);
+}
+
 /* ── PDF Panel ─────────────────────────────── */
 
 .pdf-toolbar {

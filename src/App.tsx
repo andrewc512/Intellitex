@@ -16,6 +16,12 @@ interface OpenFile {
   content: string;
 }
 
+interface PendingDiff {
+  filePath: string;
+  original: string;
+  modified: string;
+}
+
 function App() {
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const contentRef = useRef<string>("");
@@ -25,6 +31,7 @@ function App() {
   const [hiddenPanels, setHiddenPanels] = useState<Set<PanelId>>(new Set());
   const { theme, setTheme } = useTheme();
   const [chatAttachment, setChatAttachment] = useState<EditorSelection | null>(null);
+  const [pendingDiff, setPendingDiff] = useState<PendingDiff | null>(null);
 
   const handleAddToChat = useCallback((selection: EditorSelection) => {
     setChatAttachment(selection);
@@ -147,9 +154,19 @@ function App() {
 
   const handleFileEdited = useCallback((editedPath: string, newContent: string) => {
     if (!openFile || openFile.filePath !== editedPath) return;
-    contentRef.current = newContent;
-    setOpenFile((prev) => (prev ? { ...prev, content: newContent } : null));
+    setPendingDiff({ filePath: editedPath, original: contentRef.current, modified: newContent });
   }, [openFile?.filePath]);
+
+  const handleAcceptDiff = useCallback(() => {
+    if (!pendingDiff) return;
+    contentRef.current = pendingDiff.modified;
+    setOpenFile((prev) => (prev ? { ...prev, content: pendingDiff.modified } : null));
+    setPendingDiff(null);
+  }, [pendingDiff]);
+
+  const handleDiscardDiff = useCallback(() => {
+    setPendingDiff(null);
+  }, []);
 
   if (!openFile) {
     return (
@@ -251,6 +268,9 @@ function App() {
                     onSave={handleSave}
                     onRename={handleRename}
                     onAddToChat={handleAddToChat}
+                    pendingDiff={pendingDiff}
+                    onAcceptDiff={handleAcceptDiff}
+                    onDiscardDiff={handleDiscardDiff}
                     onClose={() => togglePanel("editor")}
                     onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
                     onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
