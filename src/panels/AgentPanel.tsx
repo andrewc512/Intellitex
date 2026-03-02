@@ -193,8 +193,8 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
           <img className="agent-empty-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
           <span className="agent-empty-text">
             {filePath?.toLowerCase().endsWith(".itek")
-              ? "How can I help with your .itek file?"
-              : "How can I help with your LaTeX file?"}
+              ? "How can I help with your .itek project?"
+              : "How can I help with your LaTeX project?"}
           </span>
         </div>
       ) : (
