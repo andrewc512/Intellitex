@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Editor, { DiffEditor, type Monaco } from "@monaco-editor/react";
-import type { editor } from "monaco-editor";
+import type { editor, languages } from "monaco-editor";
 import type { Theme } from "../hooks/useTheme";
 import type { EditorSelection } from "../agent/types";
 
@@ -54,9 +54,236 @@ function registerItekLanguage(monaco: Monaco) {
         ],
       },
     });
+
+    monaco.languages.registerFoldingRangeProvider("itek", {
+      provideFoldingRanges(model: editor.ITextModel) {
+        const ranges: languages.FoldingRange[] = [];
+        const lineCount = model.getLineCount();
+        const sectionLines: number[] = [];
+        const entryLines: number[] = [];
+
+        for (let i = 1; i <= lineCount; i++) {
+          const text = model.getLineContent(i).trimStart();
+          if (/^@resume\b/.test(text) || (/^#[a-zA-Z]/.test(text) && !text.startsWith("##"))) {
+            sectionLines.push(i);
+          } else if (/^(company|project|organization)\s/i.test(text) || /^##\s/.test(text)) {
+            entryLines.push(i);
+          }
+        }
+
+        const findFoldEnd = (start: number, limit: number): number => {
+          let last = limit;
+          while (last > start && model.getLineContent(last).trim() === "") last--;
+          return last;
+        };
+
+        for (let i = 0; i < sectionLines.length; i++) {
+          const start = sectionLines[i];
+          const rawEnd = i + 1 < sectionLines.length ? sectionLines[i + 1] - 1 : lineCount;
+          const end = findFoldEnd(start, rawEnd);
+          if (end > start) {
+            ranges.push({ start, end, kind: monaco.languages.FoldingRangeKind.Region });
+          }
+        }
+
+        for (let i = 0; i < entryLines.length; i++) {
+          const start = entryLines[i];
+          let rawEnd = lineCount;
+          for (const sl of sectionLines) {
+            if (sl > start) { rawEnd = sl - 1; break; }
+          }
+          for (let j = i + 1; j < entryLines.length; j++) {
+            if (entryLines[j] <= rawEnd) { rawEnd = entryLines[j] - 1; break; }
+          }
+          const end = findFoldEnd(start, rawEnd);
+          if (end > start) {
+            ranges.push({ start, end, kind: monaco.languages.FoldingRangeKind.Region });
+          }
+        }
+
+        return ranges;
+      },
+    });
   } catch {
     // fall back silently — editor still works as plaintext
   }
+}
+
+function setupSectionDrag(ed: editor.IStandaloneCodeEditor, m: typeof import("monaco-editor")) {
+  let handleDecIds: string[] = [];
+  let dragDecIds: string[] = [];
+
+  function findSections() {
+    const model = ed.getModel();
+    if (!model) return [];
+    const lineCount = model.getLineCount();
+    const starts: number[] = [];
+    for (let i = 1; i <= lineCount; i++) {
+      const text = model.getLineContent(i).trimStart();
+      if (/^@resume\b/.test(text) || (/^#[a-zA-Z]/.test(text) && !text.startsWith("##"))) {
+        starts.push(i);
+      }
+    }
+    return starts.map((s, idx) => ({
+      startLine: s,
+      endLine: idx + 1 < starts.length ? starts[idx + 1] - 1 : lineCount,
+    }));
+  }
+
+  function refreshHandles() {
+    const sections = findSections();
+    handleDecIds = ed.deltaDecorations(
+      handleDecIds,
+      sections.map((s) => ({
+        range: new m.Range(s.startLine, 1, s.startLine, 1),
+        options: {
+          glyphMarginClassName: "itek-drag-handle",
+          stickiness: m.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+        },
+      }))
+    );
+  }
+
+  refreshHandles();
+  ed.onDidChangeModelContent(refreshHandles);
+
+  let dragging = false;
+  let dragFromIdx = -1;
+  let dropInsertIdx = -1;
+
+  ed.onMouseDown((e) => {
+    if (e.target.type !== m.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) return;
+    const line = e.target.position?.lineNumber;
+    if (!line) return;
+    const sections = findSections();
+    const idx = sections.findIndex((s) => s.startLine === line);
+    if (idx === -1) return;
+
+    dragging = true;
+    dragFromIdx = idx;
+    dropInsertIdx = -1;
+    e.event.preventDefault();
+
+    const dom = ed.getDomNode();
+    if (dom) dom.style.cursor = "grabbing";
+
+    dragDecIds = ed.deltaDecorations(dragDecIds, [
+      {
+        range: new m.Range(sections[idx].startLine, 1, sections[idx].endLine, 1),
+        options: { className: "itek-drag-highlight", isWholeLine: true },
+      },
+    ]);
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging) return;
+      const sections = findSections();
+      const target = ed.getTargetAtClientPoint(ev.clientX, ev.clientY);
+
+      if (!target?.position) {
+        dragDecIds = ed.deltaDecorations(dragDecIds, [
+          {
+            range: new m.Range(sections[dragFromIdx].startLine, 1, sections[dragFromIdx].endLine, 1),
+            options: { className: "itek-drag-highlight", isWholeLine: true },
+          },
+        ]);
+        dropInsertIdx = -1;
+        return;
+      }
+
+      const hoverLine = target.position.lineNumber;
+      let hoverIdx = -1;
+      for (let i = 0; i < sections.length; i++) {
+        if (hoverLine >= sections[i].startLine && hoverLine <= sections[i].endLine) {
+          hoverIdx = i;
+          break;
+        }
+      }
+
+      if (hoverIdx === -1 || hoverIdx === dragFromIdx) {
+        dragDecIds = ed.deltaDecorations(dragDecIds, [
+          {
+            range: new m.Range(sections[dragFromIdx].startLine, 1, sections[dragFromIdx].endLine, 1),
+            options: { className: "itek-drag-highlight", isWholeLine: true },
+          },
+        ]);
+        dropInsertIdx = -1;
+        return;
+      }
+
+      const mid = (sections[hoverIdx].startLine + sections[hoverIdx].endLine) / 2;
+      dropInsertIdx = hoverLine <= mid ? hoverIdx : hoverIdx + 1;
+
+      if (dropInsertIdx === dragFromIdx || dropInsertIdx === dragFromIdx + 1) {
+        dropInsertIdx = -1;
+        dragDecIds = ed.deltaDecorations(dragDecIds, [
+          {
+            range: new m.Range(sections[dragFromIdx].startLine, 1, sections[dragFromIdx].endLine, 1),
+            options: { className: "itek-drag-highlight", isWholeLine: true },
+          },
+        ]);
+        return;
+      }
+
+      const decs: editor.IModelDeltaDecoration[] = [
+        {
+          range: new m.Range(sections[dragFromIdx].startLine, 1, sections[dragFromIdx].endLine, 1),
+          options: { className: "itek-drag-highlight", isWholeLine: true },
+        },
+      ];
+      if (dropInsertIdx < sections.length) {
+        decs.push({
+          range: new m.Range(sections[dropInsertIdx].startLine, 1, sections[dropInsertIdx].startLine, 1),
+          options: { className: "itek-drop-before", isWholeLine: true },
+        });
+      } else {
+        decs.push({
+          range: new m.Range(sections[sections.length - 1].endLine, 1, sections[sections.length - 1].endLine, 1),
+          options: { className: "itek-drop-after", isWholeLine: true },
+        });
+      }
+      dragDecIds = ed.deltaDecorations(dragDecIds, decs);
+    };
+
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      const dom = ed.getDomNode();
+      if (dom) dom.style.cursor = "";
+      dragDecIds = ed.deltaDecorations(dragDecIds, []);
+
+      if (!dragging || dropInsertIdx === -1) { dragging = false; return; }
+
+      const model = ed.getModel();
+      if (!model) { dragging = false; return; }
+
+      const sections = findSections();
+      const lines = model.getValue().split("\n");
+      const preambleEnd = sections.length > 0 ? sections[0].startLine - 1 : 0;
+      const preamble = lines.slice(0, preambleEnd);
+      const blocks = sections.map((s) => lines.slice(s.startLine - 1, s.endLine));
+
+      const [moved] = blocks.splice(dragFromIdx, 1);
+      const insertAt = dropInsertIdx > dragFromIdx ? dropInsertIdx - 1 : dropInsertIdx;
+      blocks.splice(insertAt, 0, moved);
+
+      const newContent = [...preamble, ...blocks.flat()].join("\n");
+      model.pushEditOperations(
+        [],
+        [{ range: model.getFullModelRange(), text: newContent }],
+        () => null
+      );
+
+      const updated = findSections();
+      if (updated[insertAt]) {
+        ed.setPosition({ lineNumber: updated[insertAt].startLine, column: 1 });
+        ed.revealLineInCenter(updated[insertAt].startLine);
+      }
+      dragging = false;
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
 }
 
 export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename, onAddToChat, pendingDiff, onAcceptDiff, onDiscardDiff, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
@@ -225,6 +452,10 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
               smoothScrolling: true,
               fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace",
               fontLigatures: true,
+              folding: true,
+              showFoldingControls: "always",
+              foldingStrategy: "auto",
+              glyphMargin: language === "itek",
             }}
             onMount={(editorInstance: editor.IStandaloneCodeEditor, monaco: Monaco) => {
               editorRef.current = editorInstance;
@@ -247,6 +478,7 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
                   }
                 },
               });
+              setupSectionDrag(editorInstance, monaco);
             }}
           />
         )}
