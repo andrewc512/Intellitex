@@ -6,9 +6,6 @@ const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
 const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
 const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '16384', 10);
-const MAX_HISTORY_TURNS = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS || '8', 10);
-const MAX_HISTORY_TURNS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS_SUMMARIZED || '4', 10);
-const MAX_HISTORY_CHARS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_CHARS_SUMMARIZED || '2000', 10);
 
 /**
  * Agentic loop with tool support.
@@ -19,7 +16,8 @@ const MAX_HISTORY_CHARS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_CHA
  */
 async function runAgent(context, userPrompt, apiKey, onProgress, history) {
   const progress = typeof onProgress === 'function' ? onProgress : () => {};
-  const messages = buildMessages(context, userPrompt, history);
+  const hasHistory = Array.isArray(history) && history.length > 0;
+  const messages = buildMessages(context, userPrompt, hasHistory);
 
   // Filter tool definitions based on file type to reduce token overhead
   const isItek = context.filePath && context.filePath.endsWith('.itek');
@@ -28,6 +26,13 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
     : definitions.filter((d) => d.function.name !== 'lookup_itek_reference');
 
   const editedFiles = {};
+
+  // ── Programmatic state tracking ──────────────────────────────────────
+  const state = {
+    goal: userPrompt,
+    completedSteps: [],   // e.g. "str_replace on line 12 — success"
+    errors: [],           // active errors from last tool calls
+  };
 
   let lastAssistant = null;
   // Track assistant + tool messages from this agentic session so we can
@@ -42,17 +47,25 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
         : `Continuing (${step}/${MAX_ITERATIONS})...`;
     progress({ type: 'status', message: status });
 
-    const assistant = await callOpenAIStream(messages, toolDefs, apiKey, progress);
+    // Inject state message every iteration so the model never loses track
+    // of the goal, progress, and errors.
+    messages.push({ role: 'system', content: buildStateMessage(state) });
+
+    const assistant = await callOpenAIStream(messages, toolDefs, apiKey);
     messages.push(assistant);
     agentTurns.push(assistant);
     lastAssistant = assistant;
 
     if (!assistant.tool_calls || assistant.tool_calls.length === 0) {
       const { cleaned, summary } = extractSummaryBlock(assistant.content ?? '');
+      // Emit the fully cleaned response as a single delta — no intermediate
+      // content, think blocks, or summary blocks ever reach the user.
+      if (cleaned) progress({ type: 'delta', content: cleaned });
       return { message: cleaned, summary, editedFiles };
     }
 
     let hadError = false;
+    state.errors = [];
 
     for (const tc of assistant.tool_calls) {
       const toolName = tc.function.name;
@@ -67,7 +80,13 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
         editedFiles[args.path] = result.newContent;
       }
 
-      if (result.error) hadError = true;
+      // Track step outcome for state
+      const stepLabel = summarizeToolStep(toolName, args, result);
+      if (result.error) {
+        hadError = true;
+        state.errors.push(stepLabel);
+      }
+      state.completedSteps.push(stepLabel);
 
       // Send a concise result to the model — strip full file content to avoid
       // bloating the conversation context and wasting tokens.
@@ -81,14 +100,14 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
 
     // ── Re-inject fresh file content after edits ──────────────────────
     // Update context.content so the next iteration sees the latest file state,
-    // then rebuild the base messages (system + context + history) from scratch.
+    // then rebuild the base messages (system + context) from scratch.
     for (const [fp, content] of Object.entries(editedFiles)) {
       if (fp === context.filePath) {
         context.content = content;
       }
     }
     messages.length = 0;
-    messages.push(...buildMessages(context, userPrompt, history));
+    messages.push(...buildMessages(context, userPrompt, hasHistory));
     messages.push(...agentTurns);
 
     // If a tool call failed, inject the current file content so the model
@@ -115,9 +134,50 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
   return { message: fallback, editedFiles };
 }
 
+// ── state helpers ────────────────────────────────────────────────────
+
+function buildStateMessage(state) {
+  const parts = ['## Current State'];
+  parts.push(`Goal: ${state.goal}`);
+
+  if (state.completedSteps.length > 0) {
+    parts.push('\nProgress:');
+    for (const step of state.completedSteps) {
+      parts.push(`- ${step}`);
+    }
+  }
+
+  const errorStr = state.errors.length > 0 ? state.errors.join('; ') : 'None';
+  parts.push(`\nErrors: ${errorStr}`);
+  parts.push('\nExecute the next step. When all steps are done, respond to the user.');
+  return parts.join('\n');
+}
+
+function summarizeToolStep(toolName, args, result) {
+  const success = result.error ? 'FAILED' : 'success';
+  switch (toolName) {
+    case 'str_replace':
+      return `str_replace in ${args.path || 'file'} — ${success}`;
+    case 'line_replace':
+      return `line_replace lines ${args.start_line}-${args.end_line} in ${args.path || 'file'} — ${success}`;
+    case 'write_file':
+      return `write_file ${args.path || 'file'} — ${success}`;
+    case 'read_file':
+      return `read_file ${args.path || 'file'} — ${success}`;
+    case 'compile_file': {
+      if (result.error) return `compile_file — ${result.errors?.length || 0} errors`;
+      return `compile_file — ${success}`;
+    }
+    case 'lookup_itek_reference':
+      return `lookup_itek_reference(${args.topic || '?'}) — ${success}`;
+    default:
+      return `${toolName} — ${success}`;
+  }
+}
+
 // ── helpers ──────────────────────────────────────────────────────────
 
-async function callOpenAIStream(messages, toolDefs, apiKey, progress) {
+async function callOpenAIStream(messages, toolDefs, apiKey) {
   const client = new OpenAI({ apiKey });
   let stream;
   try {
@@ -139,18 +199,14 @@ async function callOpenAIStream(messages, toolDefs, apiKey, progress) {
     throw err;
   }
 
-  const message = await readStreamedMessage(stream, progress);
+  const message = await readStreamedMessage(stream);
   if (!message) throw new Error('No response from OpenAI');
   return message;
 }
 
-async function readStreamedMessage(stream, progress) {
+async function readStreamedMessage(stream) {
   let content = '';
-  let sawToolCalls = false;
-  let sentDelta = false;
   const toolCallsByIndex = new Map();
-
-  if (progress) progress({ type: 'reset' });
 
   for await (const chunk of stream) {
     const choice = chunk.choices?.[0];
@@ -158,7 +214,6 @@ async function readStreamedMessage(stream, progress) {
     const delta = choice.delta || {};
 
     if (delta.tool_calls) {
-      sawToolCalls = true;
       for (const tc of delta.tool_calls) {
         const idx = tc.index ?? 0;
         const current = toolCallsByIndex.get(idx) || {
@@ -171,19 +226,11 @@ async function readStreamedMessage(stream, progress) {
         if (tc.function?.arguments) current.function.arguments += tc.function.arguments;
         toolCallsByIndex.set(idx, current);
       }
-      if (sentDelta && progress) {
-        progress({ type: 'reset' });
-        sentDelta = false;
-      }
       continue;
     }
 
     if (delta.content) {
       content += delta.content;
-      if (progress && !sawToolCalls) {
-        progress({ type: 'delta', content: delta.content });
-        sentDelta = true;
-      }
     }
   }
 
@@ -228,8 +275,7 @@ function safeParse(value) {
   catch { return {}; }
 }
 
-function buildMessages(context, userPrompt, history) {
-  const hasHistory = Array.isArray(history) && history.length > 0;
+function buildMessages(context, userPrompt, hasHistory) {
   const messages = [{ role: 'system', content: getSystemPrompt(context.filePath, hasHistory) }];
 
   // Build dynamic context with file content inlined
@@ -246,23 +292,6 @@ function buildMessages(context, userPrompt, history) {
 
   if (contextParts.length > 0) {
     messages.push({ role: 'system', content: `Context:\n${contextParts.join('\n\n')}` });
-  }
-
-  // Append the last N conversation turns so the model has multi-turn memory
-  // without unbounded token growth.
-  if (hasHistory) {
-    const eligible = history.filter((m) => m.role === 'user' || m.role === 'assistant');
-    const hasSummary = !!context.summary;
-    const maxTurns = hasSummary ? MAX_HISTORY_TURNS_SUMMARIZED : MAX_HISTORY_TURNS;
-    const trimmed = eligible.slice(-maxTurns).map((m) => {
-      if (!hasSummary) return m;
-      if (typeof m.content !== 'string') return m;
-      if (m.content.length <= MAX_HISTORY_CHARS_SUMMARIZED) return m;
-      return { ...m, content: `${m.content.slice(0, MAX_HISTORY_CHARS_SUMMARIZED)}…` };
-    });
-    for (const msg of trimmed) {
-      messages.push({ role: msg.role, content: msg.content });
-    }
   }
 
   messages.push({ role: 'user', content: userPrompt });
