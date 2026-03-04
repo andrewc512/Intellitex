@@ -16,6 +16,8 @@ interface AgentPanelProps {
   onMoveRight?: () => void;
 }
 
+const MAX_MESSAGES = 20; // Keep last N messages (10 user + 10 assistant exchanges)
+
 export function AgentPanel({ filePath, content, compileErrors, chatAttachment, onClearAttachment, onFileEdited, onClose, onMoveLeft, onMoveRight }: AgentPanelProps) {
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -28,6 +30,10 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
   const streamingIndexRef = useRef<number | null>(null);
   const activeRequestIdRef = useRef(0);
   const isSendingRef = useRef(false);
+
+  // Trim messages to MAX_MESSAGES, keeping the most recent ones
+  const trimMessages = (msgs: AgentMessage[]) =>
+    msgs.length > MAX_MESSAGES ? msgs.slice(msgs.length - MAX_MESSAGES) : msgs;
 
   useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, []);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinkingStatus]);
@@ -92,7 +98,7 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
         ? { startLine: chatAttachment.startLine, endLine: chatAttachment.endLine }
         : undefined;
       const ctx: AgentContext = { filePath: filePath ?? undefined, content, compileErrors, selection, summary: summary ?? undefined };
-      const history = messages.map(({ role, content: c }) => ({ role, content: c }));
+      const history = trimMessages(messages).map(({ role, content: c }) => ({ role, content: c }));
       onClearAttachment?.();
       const res: AgentResponse = await window.electronAPI.agentProcess(ctx, prompt, history);
 
@@ -141,6 +147,8 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
       isSendingRef.current = false;
       setIsLoading(false);
       setThinkingStatus("");
+      // Trim old messages to keep the chat history bounded
+      setMessages((prev) => trimMessages(prev));
     }
   };
 

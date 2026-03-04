@@ -2,7 +2,7 @@ const OpenAI = require('openai');
 const { definitions, executeTool } = require('./tools');
 const { getSystemPrompt, buildContext, getRelevantItekReference } = require('./prompts');
 
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
+const MODEL = process.env.OPENAI_MODEL || 'gpt-5';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
 const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
 const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '16384', 10);
