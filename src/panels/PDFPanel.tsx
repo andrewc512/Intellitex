@@ -51,9 +51,9 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
   const canvasRefs = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const renderTasksRef = useRef<Map<number, { cancel: () => void }>>(new Map());
 
-  const pdfPath =
+  const pdfBuffer =
     compileState.status === "done" && compileState.result.success
-      ? compileState.result.pdfPath
+      ? compileState.result.pdfBuffer
       : null;
 
   const errors =
@@ -65,9 +65,8 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
       ? compileState.result.errors.filter((e) => e.type === "warning")
       : [];
 
-  // Load PDF when path changes
   useEffect(() => {
-    if (!pdfPath) {
+    if (!pdfBuffer) {
       setPdf(null);
       return;
     }
@@ -78,10 +77,7 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
 
     (async () => {
       try {
-        const buffer = await window.electronAPI.readPDF(pdfPath);
-        if (cancelled) return;
-
-        const loadingTask = pdfjsLib.getDocument({ data: buffer });
+        const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
         const pdfDoc = await loadingTask.promise;
         if (cancelled) {
           pdfDoc.destroy();
@@ -104,7 +100,7 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
     return () => {
       cancelled = true;
     };
-  }, [pdfPath]);
+  }, [pdfBuffer]);
 
   // Cleanup PDF on unmount
   useEffect(() => {

@@ -27,7 +27,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("menu:compile", callback);
   },
   compileFile: (filePath) => ipcRenderer.invoke("compile:file", filePath),
-  readPDF: (pdfPath) => ipcRenderer.invoke("pdf:read", pdfPath),
+  exportPDF: (filePath) => ipcRenderer.invoke("export:pdf", filePath),
+  onMenuExport: (callback) => {
+    ipcRenderer.on("menu:export", callback);
+    return () => ipcRenderer.removeListener("menu:export", callback);
+  },
   agentProcess: (context, userPrompt, history) => ipcRenderer.invoke("agent:process", context, userPrompt, history),
   agentCheckApiKey: () => ipcRenderer.invoke("agent:checkApiKey"),
   onAgentProgress: (callback) => {

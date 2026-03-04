@@ -123,25 +123,32 @@ function App() {
 
   const handleCompile = useCallback(async () => {
     if (!openFile?.filePath) return;
-    // Save first so the compiled file is up to date
     await window.electronAPI.saveFile(openFile.filePath, contentRef.current);
     setCompileState({ status: "compiling" });
     const result = await window.electronAPI.compileFile(openFile.filePath);
     setCompileState({ status: "done", result });
   }, [openFile?.filePath]);
 
+  const handleExport = useCallback(async () => {
+    if (!openFile?.filePath) return;
+    if (compileState.status !== "done" || !compileState.result.pdfBuffer) return;
+    await window.electronAPI.exportPDF(openFile.filePath);
+  }, [openFile?.filePath, compileState]);
+
   useEffect(() => {
     const cleanupSave = window.electronAPI.onMenuSave(() => handleSave());
     const cleanupOpen = window.electronAPI.onMenuOpen(() => handleOpenFile());
     const cleanupNew = window.electronAPI.onMenuNew(() => handleNewFile());
     const cleanupCompile = window.electronAPI.onMenuCompile(() => handleCompile());
+    const cleanupExport = window.electronAPI.onMenuExport(() => handleExport());
     return () => {
       cleanupSave();
       cleanupOpen();
       cleanupNew();
       cleanupCompile();
+      cleanupExport();
     };
-  }, [handleSave, handleOpenFile, handleNewFile, handleCompile]);
+  }, [handleSave, handleOpenFile, handleNewFile, handleCompile, handleExport]);
 
   const handleRename = useCallback(
     async (newName: string) => {
@@ -247,6 +254,17 @@ function App() {
           >
             <img className="btn-img-icon" src={iconUrl("icon-compile.png")} alt="" aria-hidden="true" />
             {compileState.status === "compiling" ? "Compiling…" : "Compile"}
+          </button>
+
+          <button
+            className="btn"
+            type="button"
+            aria-label="Export PDF"
+            onClick={handleExport}
+            disabled={compileState.status !== "done" || !compileState.result.pdfBuffer}
+          >
+            <img className="btn-img-icon" src={iconUrl("icon-export.png")} alt="" aria-hidden="true" />
+            Export
           </button>
         </div>
       </header>

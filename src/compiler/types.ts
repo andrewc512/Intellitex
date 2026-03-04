@@ -6,7 +6,7 @@ export interface CompileError {
 
 export interface CompileResult {
   success: boolean;
-  pdfPath: string | null;
+  pdfBuffer: ArrayBuffer | null;
   errors: CompileError[];
   log: string;
 }

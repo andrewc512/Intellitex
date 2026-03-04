@@ -15,7 +15,8 @@ interface ElectronAPI {
   onMenuNew: (callback: () => void) => () => void;
   onMenuCompile: (callback: () => void) => () => void;
   compileFile: (filePath: string) => Promise<CompileResult>;
-  readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
+  exportPDF: (filePath: string) => Promise<string>;
+  onMenuExport: (callback: () => void) => () => void;
   agentProcess: (context: import("../agent/types").AgentContext, userPrompt: string, history: { role: string; content: string }[]) => Promise<import("../agent/types").AgentResponse>;
   agentCheckApiKey: () => Promise<boolean>;
   onAgentProgress: (callback: (status: import("../agent/types").AgentProgress) => void) => () => void;

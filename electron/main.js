@@ -7,6 +7,8 @@ const { processAgentRequest, checkApiKey, getApiKey } = require("./agent/index")
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
+let cachedPdfBuffer = null;
+
 const RECENTS_PATH = () =>
   path.join(app.getPath("userData"), "recent-files.json");
 
@@ -43,6 +45,13 @@ function createMenu( win ) {
           label: "Compile",
           click: () => {
             win.webContents.send("menu:compile");
+          },
+        },
+        {
+          label: "Export PDF",
+          accelerator: "CmdOrCtrl+E",
+          click: () => {
+            win.webContents.send("menu:export");
           },
         },
         {
@@ -271,12 +280,24 @@ ipcMain.handle("file:getRecents", async () => {
 });
 
 ipcMain.handle("compile:file", async (_event, filePath) => {
-  return compile(filePath);
+  const result = await compile(filePath);
+  let pdfBuffer = null;
+  if (result.pdfPath) {
+    pdfBuffer = await fs.readFile(result.pdfPath);
+    await fs.unlink(result.pdfPath).catch(() => {});
+  }
+  cachedPdfBuffer = pdfBuffer;
+  return { success: result.success, pdfBuffer, errors: result.errors, log: result.log };
 });
 
-ipcMain.handle("pdf:read", async (_event, pdfPath) => {
-  const buffer = await fs.readFile(pdfPath);
-  return buffer;
+ipcMain.handle("export:pdf", async (_event, sourceFilePath) => {
+  if (!cachedPdfBuffer) throw new Error("No compiled PDF to export");
+  const dir = path.dirname(sourceFilePath);
+  const ext = path.extname(sourceFilePath).toLowerCase();
+  const basename = path.basename(sourceFilePath, ext);
+  const outPath = path.join(dir, basename + ".pdf");
+  await fs.writeFile(outPath, cachedPdfBuffer);
+  return outPath;
 });
 
 ipcMain.handle("file:removeRecent", async (_event, filePath) => {
