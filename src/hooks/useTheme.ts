@@ -7,6 +7,16 @@ export const THEMES = [
   { id: "neon", label: "Neon", icon: "moon" as const },
   { id: "solarized", label: "Solarized" },
   { id: "rosepine", label: "Rosé Pine", icon: "moon" as const },
+  { id: "midnight", label: "Midnight", icon: "moon" as const },
+  { id: "forest", label: "Forest", icon: "moon" as const },
+  { id: "ocean", label: "Ocean", icon: "moon" as const },
+  { id: "ember", label: "Ember", icon: "moon" as const },
+  { id: "arctic", label: "Arctic" },
+  { id: "coffee", label: "Coffee", icon: "moon" as const },
+  { id: "slate", label: "Slate", icon: "moon" as const },
+  { id: "vaporwave", label: "Vaporwave", icon: "moon" as const },
+  { id: "bubblegum", label: "Bubblegum" },
+  { id: "retrowave", label: "Retrowave", icon: "moon" as const },
 ] as const;
 
 export type Theme = (typeof THEMES)[number]["id"];

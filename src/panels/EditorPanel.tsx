@@ -414,7 +414,7 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
           <DiffEditor
             height="100%"
             language={language}
-            theme={theme === "light" || theme === "muted" ? "light" : "vs-dark"}
+            theme={theme === "light" || theme === "muted" || theme === "arctic" || theme === "bubblegum" ? "light" : "vs-dark"}
             original={pendingDiff.original}
             modified={pendingDiff.modified}
             beforeMount={(monaco) => registerItekLanguage(monaco)}
@@ -436,7 +436,7 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
           <Editor
             height="100%"
             language={language}
-            theme={theme === "light" || theme === "muted" ? "light" : "vs-dark"}
+            theme={theme === "light" || theme === "muted" || theme === "arctic" || theme === "bubblegum" ? "light" : "vs-dark"}
             value={content}
             onChange={(val) => onChange(val ?? "")}
             beforeMount={(monaco) => registerItekLanguage(monaco)}

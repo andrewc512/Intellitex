@@ -145,6 +145,19 @@ function formatLines(lines, offset) {
  * For files with a selection, we send a focused window around the selection
  * instead of the entire file.
  */
+
+/* 
+
+what actually goes into context :
+
+summary (if exists)
+filepath (if exists)
+outline from buildOutline
+lines around content, or entire file if < 300 lines
+selected lines (if needed)
+compile errors
+
+*/
 function buildContext(context) {
   const parts = [];
 
