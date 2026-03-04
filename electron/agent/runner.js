@@ -186,7 +186,6 @@ async function callOpenAIStream(messages, toolDefs, apiKey) {
         model: MODEL,
         messages,
         tools: toolDefs,
-        temperature: 0,
         max_completion_tokens: MAX_OUTPUT_TOKENS,
         stream: true,
       },
