@@ -19,6 +19,8 @@ interface AgentPanelProps {
 const MAX_MESSAGES = 20; // Keep last N messages (10 user + 10 assistant exchanges)
 
 export function AgentPanel({ filePath, content, compileErrors, chatAttachment, onClearAttachment, onFileEdited, onClose, onMoveLeft, onMoveRight }: AgentPanelProps) {
+  const iconUrl = (name: string) => `${import.meta.env.BASE_URL}icons/${name}`;
+
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -162,7 +164,7 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
           <span className="panel-header-title">Assistant</span>
         </div>
         <div className="agent-empty" role="alert">
-          <img className="agent-empty-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
+          <img className="agent-empty-icon" src={iconUrl("icon-assistant.png")} alt="" aria-hidden="true" />
           <span className="agent-empty-text">API Key Required</span>
           <span className="agent-empty-subtitle">Set the OPENAI_API_KEY environment variable to use the assistant.</span>
         </div>
@@ -198,7 +200,7 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
 
       {messages.length === 0 ? (
         <div className="agent-empty" role="status">
-          <img className="agent-empty-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />
+          <img className="agent-empty-icon" src={iconUrl("icon-assistant.png")} alt="" aria-hidden="true" />
           <span className="agent-empty-text">
             {filePath?.toLowerCase().endsWith(".itek")
               ? "How can I help with your .itek project?"
@@ -209,7 +211,7 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
         <div className="agent-messages">
           {messages.map((msg, i) => (
             <div key={i} className={`agent-message agent-message-${msg.role}`}>
-              {msg.role === "assistant" && <img className="agent-message-icon" src="/icons/icon-assistant.png" alt="" aria-hidden="true" />}
+              {msg.role === "assistant" && <img className="agent-message-icon" src={iconUrl("icon-assistant.png")} alt="" aria-hidden="true" />}
               <div className="agent-message-content">
                 {msg.role === "assistant" ? (
                   <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{msg.content}</ReactMarkdown>

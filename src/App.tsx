@@ -23,6 +23,8 @@ interface PendingDiff {
 }
 
 function App() {
+  const iconUrl = (name: string) => `${import.meta.env.BASE_URL}icons/${name}`;
+
   const [openFile, setOpenFile] = useState<OpenFile | null>(null);
   const contentRef = useRef<string>("");
   const [recents, setRecents] = useState<string[]>([]);
@@ -196,7 +198,7 @@ function App() {
           aria-label="Return to home screen"
           type="button"
         >
-          <img className="header-brand-icon" src="/icons/logo.png" alt="" aria-hidden="true" />
+          <img className="header-brand-icon" src={iconUrl("logo.png")} alt="" aria-hidden="true" />
           <span className="header-brand-name">IntelliTex</span>
         </button>
 
@@ -243,7 +245,7 @@ function App() {
             onClick={handleCompile}
             disabled={compileState.status === "compiling"}
           >
-            <img className="btn-img-icon" src="/icons/icon-compile.png" alt="" aria-hidden="true" />
+            <img className="btn-img-icon" src={iconUrl("icon-compile.png")} alt="" aria-hidden="true" />
             {compileState.status === "compiling" ? "Compiling…" : "Compile"}
           </button>
         </div>
