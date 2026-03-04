@@ -1,15 +1,11 @@
 const OpenAI = require('openai');
 const { definitions, executeTool } = require('./tools');
-const { getSystemPrompt, buildContext, getRelevantItekReference, PLANNING_PROMPT, EXECUTION_PROMPT } = require('./prompts');
+const { getSystemPrompt, buildContext, getRelevantItekReference } = require('./prompts');
 
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
 const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
-const PLAN_OUTPUT_TOKENS = parseInt(process.env.OPENAI_PLAN_OUTPUT_TOKENS || '1024', 10);
-const EXEC_OUTPUT_TOKENS = parseInt(process.env.OPENAI_EXEC_OUTPUT_TOKENS || '4096', 10);
-const MAX_HISTORY_TURNS = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS || '8', 10);
-const MAX_HISTORY_TURNS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_TURNS_SUMMARIZED || '4', 10);
-const MAX_HISTORY_CHARS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_CHARS_SUMMARIZED || '2000', 10);
+const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '16384', 10);
 
 /**
  * Agentic loop with tool support.
@@ -20,6 +16,8 @@ const MAX_HISTORY_CHARS_SUMMARIZED = parseInt(process.env.OPENAI_MAX_HISTORY_CHA
  */
 async function runAgent(context, userPrompt, apiKey, onProgress, history) {
   const progress = typeof onProgress === 'function' ? onProgress : () => {};
+  const hasHistory = Array.isArray(history) && history.length > 0;
+  const messages = buildMessages(context, userPrompt, hasHistory);
 
   // Filter tool definitions based on file type to reduce token overhead
   const isItek = context.filePath && context.filePath.endsWith('.itek');
@@ -27,85 +25,38 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
     ? definitions
     : definitions.filter((d) => d.function.name !== 'lookup_itek_reference');
 
-  // ── Phase 1: Planning (no tools) ────────────────────────────────────
-  progress({ type: 'status', message: 'Planning approach...' });
-
-  const planMessages = buildMessages(context, userPrompt, history);
-  planMessages.push({ role: 'system', content: PLANNING_PROMPT });
-
-  // Call with no tools, no streaming to user (silent planning), small token limit
-  const planAssistant = await callOpenAIStream(planMessages, null, apiKey, () => {}, PLAN_OUTPUT_TOKENS);
-  const planText = extractPlan(planAssistant.content ?? '');
-  const rawContent = planAssistant.content ?? '';
-  console.log('[agent] plan:', planText || rawContent);
-
-  // If plan type is "answer", return immediately — no execution needed
-  if (planText) {
-    const planType = parsePlanType(planText);
-    if (planType === 'answer') {
-      const answer = extractPlanAnswer(planText);
-      if (answer) {
-        const { cleaned, summary } = extractSummaryBlock(answer);
-        return { message: cleaned, summary, editedFiles: {} };
-      }
-    }
-  }
-
-  // Use extracted plan, or fall back to raw content as plan context
-  const effectivePlan = planText || rawContent;
-
-  // ── Phase 2: Execution loop (with tools, plan injected) ─────────────
-  progress({ type: 'status', message: 'Executing plan...' });
-
   const editedFiles = {};
-  let lastAssistant = null;
-  const agentTurns = [];
 
-  // Build base messages once — system prompt, context, history, user prompt.
-  // We only rebuild when file content changes after edits.
-  let baseMessages = buildMessages(context, userPrompt, history);
-  // Index of the context system message so we can swap it on edits
-  const contextMsgIdx = baseMessages.findIndex(
-    (m) => m.role === 'system' && m.content.startsWith('Context:\n')
-  );
+  // ── Programmatic state tracking ──────────────────────────────────────
+  const state = {
+    goal: userPrompt,
+    completedSteps: [],   // e.g. "str_replace on line 12 — success"
+    errors: [],           // active errors from last tool calls
+  };
+
+  let lastAssistant = null;
+  // Track assistant + tool messages from this agentic session so we can
+  // replay them after rebuilding the base messages with fresh file content.
+  const agentTurns = [];
 
   for (let i = 0; i < MAX_ITERATIONS; i += 1) {
     const step = i + 1;
-    if (step > 1) {
-      progress({ type: 'status', message: `Continuing (${step}/${MAX_ITERATIONS})...` });
-    }
+    const status =
+      step === 1
+        ? 'Analyzing your request...'
+        : `Continuing (${step}/${MAX_ITERATIONS})...`;
+    progress({ type: 'status', message: status });
 
-    // Assemble messages: base + plan (first iteration only) + agent turns
-    const messages = [...baseMessages];
-    if (i === 0) {
-      messages.push({ role: 'system', content: EXECUTION_PROMPT + effectivePlan });
-    }
-    messages.push(...agentTurns);
+    // Inject state message every iteration so the model never loses track
+    // of the goal, progress, and errors.
+    messages.push({ role: 'system', content: buildStateMessage(state) });
 
-    // Buffer deltas instead of streaming directly — we only want the user
-    // to see the final response, not intermediate reasoning during tool use.
-    const bufferedDeltas = [];
-    const bufferingProgress = (event) => {
-      if (event.type === 'delta') {
-        bufferedDeltas.push(event.content);
-      } else {
-        progress(event); // pass through status/reset events
-      }
-    };
-
-    const assistant = await callOpenAIStream(messages, toolDefs, apiKey, bufferingProgress);
+    const assistant = await callOpenAIStream(messages, toolDefs, apiKey);
+    messages.push(assistant);
     agentTurns.push(assistant);
     lastAssistant = assistant;
 
-    if (assistant.tool_calls && assistant.tool_calls.length > 0) {
-      // Intermediate iteration — log thinking to console, don't show to user
-      const thinking = bufferedDeltas.join('');
-      if (thinking) console.log('[agent] thinking:', thinking);
-    } else {
-      // Final response — replay buffered deltas to the user
-      for (const delta of bufferedDeltas) {
-        progress({ type: 'delta', content: delta });
-      }
+    if (!assistant.tool_calls || assistant.tool_calls.length === 0) {
       const { cleaned, summary } = extractSummaryBlock(assistant.content ?? '');
       // Emit the fully cleaned response as a single delta — no intermediate
       // content, think blocks, or summary blocks ever reach the user.
@@ -129,45 +80,49 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
         editedFiles[args.path] = result.newContent;
       }
 
-      if (result.error) hadError = true;
+      // Track step outcome for state
+      const stepLabel = summarizeToolStep(toolName, args, result);
+      if (result.error) {
+        hadError = true;
+        state.errors.push(stepLabel);
+      }
+      state.completedSteps.push(stepLabel);
 
+      // Send a concise result to the model — strip full file content to avoid
+      // bloating the conversation context and wasting tokens.
       const toolResponse = { ...result };
       delete toolResponse.newContent;
 
       const toolMsg = { role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResponse) };
+      messages.push(toolMsg);
       agentTurns.push(toolMsg);
     }
 
-    // If the active file was edited, refresh only the context message in
-    // baseMessages instead of rebuilding everything from scratch.
-    let fileRefreshed = false;
+    // ── Re-inject fresh file content after edits ──────────────────────
+    // Update context.content so the next iteration sees the latest file state,
+    // then rebuild the base messages (system + context) from scratch.
     for (const [fp, content] of Object.entries(editedFiles)) {
       if (fp === context.filePath) {
         context.content = content;
-        fileRefreshed = true;
       }
     }
-    if (fileRefreshed && contextMsgIdx !== -1) {
-      // Rebuild just the context system message with updated file content
-      const dynamicContext = buildContext(context);
-      const itekRefText = isItek ? getRelevantItekReference(context.content) : null;
-      const parts = [];
-      if (dynamicContext && dynamicContext.trim()) parts.push(dynamicContext);
-      if (itekRefText) parts.push(itekRefText);
-      if (parts.length > 0) {
-        baseMessages[contextMsgIdx] = { role: 'system', content: `Context:\n${parts.join('\n\n')}` };
-      }
-    }
+    messages.length = 0;
+    messages.push(...buildMessages(context, userPrompt, hasHistory));
+    messages.push(...agentTurns);
 
-    // If a tool call failed, nudge the model to re-read context — don't
-    // duplicate the entire file content into agentTurns.
+    // If a tool call failed, inject the current file content so the model
+    // can see exactly what's in the file and self-correct on the next attempt.
     if (hadError) {
-      agentTurns.push({
+      const lines = context.content ? context.content.split('\n') : [];
+      const numberedContent = lines.map((l, i) => `${i + 1}: ${l}`).join('\n');
+      const recovery = {
         role: 'system',
         content:
-          'A tool call failed. Re-read the file content provided in the Context message above ' +
-          'and copy strings exactly as they appear. Pay attention to whitespace.',
-      });
+          'A tool call failed. Here is the CURRENT file content — read it carefully before retrying. ' +
+          'Copy strings exactly as they appear below.\n\n' +
+          `Current file content (${lines.length} lines):\n${numberedContent}`,
+      };
+      messages.push(recovery);
     }
   }
 
@@ -222,21 +177,21 @@ function summarizeToolStep(toolName, args, result) {
 
 // ── helpers ──────────────────────────────────────────────────────────
 
-async function callOpenAIStream(messages, toolDefs, apiKey, progress, maxTokens) {
+async function callOpenAIStream(messages, toolDefs, apiKey) {
   const client = new OpenAI({ apiKey });
-  const params = {
-    model: MODEL,
-    messages,
-    temperature: 0,
-    max_completion_tokens: maxTokens || EXEC_OUTPUT_TOKENS,
-    stream: true,
-  };
-  if (toolDefs && toolDefs.length > 0) {
-    params.tools = toolDefs;
-  }
   let stream;
   try {
-    stream = await client.chat.completions.create(params, { timeout: REQUEST_TIMEOUT_MS });
+    stream = await client.chat.completions.create(
+      {
+        model: MODEL,
+        messages,
+        tools: toolDefs,
+        temperature: 0,
+        max_completion_tokens: MAX_OUTPUT_TOKENS,
+        stream: true,
+      },
+      { timeout: REQUEST_TIMEOUT_MS }
+    );
   } catch (err) {
     if (err && err.name === 'APIConnectionTimeoutError') {
       throw new Error(`OpenAI request timed out after ${REQUEST_TIMEOUT_MS}ms`);
@@ -297,35 +252,12 @@ function stripThinkBlocks(text) {
   return text.replace(/<think>[\s\S]*?<\/think>\s*/g, '');
 }
 
-function stripPlanBlocks(text) {
-  if (!text) return text;
-  return text.replace(/<plan>[\s\S]*?<\/plan>\s*/g, '');
-}
-
-function extractPlan(content) {
-  if (!content) return null;
-  const match = content.match(/<plan>([\s\S]*?)<\/plan>/);
-  return match ? match[1].trim() : null;
-}
-
-function parsePlanType(planText) {
-  if (!planText) return 'edit';
-  const match = planText.match(/^type:\s*(answer|edit)/m);
-  return match ? match[1] : 'edit';
-}
-
-function extractPlanAnswer(planText) {
-  if (!planText) return null;
-  const match = planText.match(/^response:\s*([\s\S]*)/m);
-  return match ? match[1].trim() : null;
-}
-
 function extractSummaryBlock(content) {
   const startToken = '[[SUMMARY]]';
   const endToken = '[[/SUMMARY]]';
   if (!content) return { cleaned: '', summary: null };
-  // Strip <think> and <plan> blocks before returning to user
-  let text = stripPlanBlocks(stripThinkBlocks(content));
+  // Strip <think> blocks before returning to user
+  let text = stripThinkBlocks(content);
   const start = text.lastIndexOf(startToken);
   const end = text.lastIndexOf(endToken);
   if (start === -1 || end === -1 || end <= start) {
