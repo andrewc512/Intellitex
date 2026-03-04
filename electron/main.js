@@ -30,10 +30,10 @@ function createMenu( win ) {
           },
         },
         {
-          label: "Save",
+          label: "Save & Compile",
           accelerator: "CmdOrCtrl+S",
           click: () => {
-            win.webContents.send("menu:save");
+            win.webContents.send("menu:compile");
           },
         },
         {
@@ -41,7 +41,6 @@ function createMenu( win ) {
         },
         {
           label: "Compile",
-          accelerator: "CmdOrCtrl+B",
           click: () => {
             win.webContents.send("menu:compile");
           },

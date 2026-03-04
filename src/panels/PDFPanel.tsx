@@ -329,7 +329,7 @@ export function PDFPanel({ compileState, onMoveLeft, onMoveRight }: PDFPanelProp
               </p>
               <span className="pdf-placeholder-hint">
                 <kbd className="kbd">⌘</kbd>
-                <kbd className="kbd">B</kbd>
+                <kbd className="kbd">S</kbd>
                 <span>to compile</span>
               </span>
             </div>

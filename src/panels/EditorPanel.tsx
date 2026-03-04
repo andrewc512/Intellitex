@@ -465,6 +465,34 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
                 run: onSave,
               });
               editorInstance.addAction({
+                id: "toggle-bold",
+                label: "Toggle Bold",
+                keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyB],
+                precondition: "editorHasSelection",
+                run: () => {
+                  const model = editorInstance.getModel();
+                  const selection = editorInstance.getSelection();
+                  if (!model || !selection || selection.isEmpty()) return;
+                  const selectedText = model.getValueInRange(selection);
+                  if (!selectedText) return;
+
+                  let wrapped: string;
+                  if (filePath && filePath.toLowerCase().endsWith(".tex")) {
+                    wrapped = `\\\\textbf{${selectedText}}`;
+                  } else {
+                    wrapped = `**${selectedText}**`;
+                  }
+
+                  editorInstance.executeEdits("toggle-bold", [
+                    {
+                      range: selection,
+                      text: wrapped,
+                      forceMoveMarkers: true,
+                    },
+                  ]);
+                },
+              });
+              editorInstance.addAction({
                 id: "add-to-chat",
                 label: "Add to Chat",
                 keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyL],
