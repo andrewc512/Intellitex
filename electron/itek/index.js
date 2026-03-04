@@ -1,25 +1,13 @@
 const { parse } = require("./parser");
-const {
-  transpile,
-  DEFAULT_SPACING,
-  CONDENSE_LIMITS,
-  EXPAND_LIMITS,
-  calculateSpacing,
-  countSpacingPoints,
-} = require("./transpiler");
+const { transpile } = require("./transpiler");
 
-function itekToLatex(source, options) {
+function itekToLatex(source) {
   const doc = parse(source);
-  return transpile(doc, options);
+  return transpile(doc);
 }
 
 module.exports = {
   parse,
   transpile,
   itekToLatex,
-  DEFAULT_SPACING,
-  CONDENSE_LIMITS,
-  EXPAND_LIMITS,
-  calculateSpacing,
-  countSpacingPoints,
 };
