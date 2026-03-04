@@ -22,6 +22,7 @@ export function WelcomeScreen({
   theme,
   onSetTheme,
 }: WelcomeScreenProps) {
+  const iconUrl = (name: string) => `${import.meta.env.BASE_URL}icons/${name}`;
 
   const handleRemove = (e: React.MouseEvent, filePath: string) => {
     e.stopPropagation();
@@ -34,7 +35,7 @@ export function WelcomeScreen({
         <ThemeDropdown theme={theme} onSetTheme={onSetTheme} />
       </div>
       <div className="welcome-card">
-        <img className="welcome-logo" src="/icons/logo.png" alt="IntelliTex" />
+        <img className="welcome-logo" src={iconUrl("logo.png")} alt="IntelliTex" />
 
         <h1 className="welcome-title">IntelliTex</h1>
         <p className="welcome-subtitle">
