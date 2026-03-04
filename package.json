@@ -45,6 +45,9 @@
     "files": [
       "dist",
       "electron"
-    ]
+    ],
+    "mac": {
+      "icon": "public/icons/intellitex.icns"
+    }
   }
 }
