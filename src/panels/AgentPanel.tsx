@@ -14,13 +14,14 @@ interface AgentPanelProps {
   onClose?: () => void;
   onMoveLeft?: () => void;
   onMoveRight?: () => void;
+  onOpenSettings?: () => void;
+  apiKeyVersion?: number;
 }
 
 const MAX_MESSAGES = 20; // Keep last N messages (10 user + 10 assistant exchanges)
 
-export function AgentPanel({ filePath, content, compileErrors, chatAttachment, onClearAttachment, onFileEdited, onClose, onMoveLeft, onMoveRight }: AgentPanelProps) {
+export function AgentPanel({ filePath, content, compileErrors, chatAttachment, onClearAttachment, onFileEdited, onClose, onMoveLeft, onMoveRight, onOpenSettings, apiKeyVersion }: AgentPanelProps) {
   const iconUrl = (name: string) => `${import.meta.env.BASE_URL}icons/${name}`;
-
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +38,7 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
   const trimMessages = (msgs: AgentMessage[]) =>
     msgs.length > MAX_MESSAGES ? msgs.slice(msgs.length - MAX_MESSAGES) : msgs;
 
-  useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, []);
+  useEffect(() => { window.electronAPI.agentCheckApiKey().then(setHasApiKey); }, [apiKeyVersion]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, thinkingStatus]);
 
   useEffect(() => {
@@ -166,7 +167,12 @@ export function AgentPanel({ filePath, content, compileErrors, chatAttachment, o
         <div className="agent-empty" role="alert">
           <img className="agent-empty-icon" src={iconUrl("icon-assistant.png")} alt="" aria-hidden="true" />
           <span className="agent-empty-text">API Key Required</span>
-          <span className="agent-empty-subtitle">Set the OPENAI_API_KEY environment variable to use the assistant.</span>
+          <span className="agent-empty-subtitle">Add an API key in Settings to use the assistant.</span>
+          {onOpenSettings && (
+            <button className="btn btn-primary" type="button" onClick={onOpenSettings} style={{ marginTop: 4 }}>
+              Open Settings
+            </button>
+          )}
         </div>
       </div>
     );

@@ -4,6 +4,7 @@ import { EditorPanel } from "./panels/EditorPanel";
 import { PDFPanel } from "./panels/PDFPanel";
 import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
+import { SettingsModal } from "./components/SettingsModal";
 import { useTheme } from "./hooks/useTheme";
 import { ThemeDropdown } from "./components/ThemeDropdown";
 import type { CompileStatus } from "./compiler/types";
@@ -34,6 +35,8 @@ function App() {
   const { theme, setTheme } = useTheme();
   const [chatAttachment, setChatAttachment] = useState<EditorSelection | null>(null);
   const [pendingDiff, setPendingDiff] = useState<PendingDiff | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiKeyVersion, setApiKeyVersion] = useState(0);
 
   const handleAddToChat = useCallback((selection: EditorSelection) => {
     setChatAttachment(selection);
@@ -234,6 +237,19 @@ function App() {
             </button>
           ))}
 
+          <button
+            className="btn-icon"
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            aria-label="Open settings"
+            title="Settings"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+
           <ThemeDropdown theme={theme} onSetTheme={setTheme} />
 
           <div className="header-separator" aria-hidden="true" />
@@ -304,6 +320,8 @@ function App() {
                     onClose={() => togglePanel("agent")}
                     onMoveLeft={canMoveLeft ? () => movePanel("agent", -1) : undefined}
                     onMoveRight={canMoveRight ? () => movePanel("agent", 1) : undefined}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                    apiKeyVersion={apiKeyVersion}
                   />
                 );
             }
@@ -327,6 +345,11 @@ function App() {
           return acc;
         }, [])}
       </PanelGroup>
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onApiKeyChanged={() => setApiKeyVersion((v) => v + 1)}
+      />
     </div>
   );
 }

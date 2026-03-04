@@ -1,5 +1,11 @@
 import type { CompileResult } from "../compiler/types";
 
+interface AppSettings {
+  provider: string;
+  model: string;
+  hasKeys: { openai: boolean; anthropic: boolean; google: boolean };
+}
+
 interface ElectronAPI {
   openFile: () => Promise<{ filePath: string; content: string } | null>;
   openPath: (filePath: string) => Promise<{ filePath: string; content: string }>;
@@ -18,6 +24,9 @@ interface ElectronAPI {
   readPDF: (pdfPath: string) => Promise<ArrayBuffer>;
   agentProcess: (context: import("../agent/types").AgentContext, userPrompt: string, history: { role: string; content: string }[]) => Promise<import("../agent/types").AgentResponse>;
   agentCheckApiKey: () => Promise<boolean>;
+  getSettings: () => Promise<AppSettings>;
+  saveSettings: (patch: { provider?: string; model?: string }) => Promise<AppSettings>;
+  setApiKey: (provider: string, key: string) => Promise<void>;
   onAgentProgress: (callback: (status: import("../agent/types").AgentProgress) => void) => () => void;
 }
 

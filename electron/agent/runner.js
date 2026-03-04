@@ -2,7 +2,7 @@ const OpenAI = require('openai');
 const { definitions, executeTool } = require('./tools');
 const { getSystemPrompt, buildContext, getRelevantItekReference } = require('./prompts');
 
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
+const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'gpt-5';
 const REQUEST_TIMEOUT_MS = parseInt(process.env.OPENAI_TIMEOUT_MS || '120000', 10);
 const MAX_ITERATIONS = parseInt(process.env.OPENAI_MAX_ITERATIONS || '15', 10);
 const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '16384', 10);
@@ -14,7 +14,7 @@ const MAX_OUTPUT_TOKENS = parseInt(process.env.OPENAI_MAX_OUTPUT_TOKENS || '1638
  * If the model calls tools, executes them and continues until it
  * returns a final response or reaches MAX_ITERATIONS.
  */
-async function runAgent(context, userPrompt, apiKey, onProgress, history) {
+async function runAgent(context, userPrompt, apiKey, onProgress, history, { model } = {}) {
   const progress = typeof onProgress === 'function' ? onProgress : () => {};
   const hasHistory = Array.isArray(history) && history.length > 0;
   const messages = buildMessages(context, userPrompt, hasHistory);
@@ -51,7 +51,7 @@ async function runAgent(context, userPrompt, apiKey, onProgress, history) {
     // of the goal, progress, and errors.
     messages.push({ role: 'system', content: buildStateMessage(state) });
 
-    const assistant = await callOpenAIStream(messages, toolDefs, apiKey);
+    const assistant = await callOpenAIStream(messages, toolDefs, apiKey, model || DEFAULT_MODEL);
     messages.push(assistant);
     agentTurns.push(assistant);
     lastAssistant = assistant;
@@ -177,13 +177,13 @@ function summarizeToolStep(toolName, args, result) {
 
 // ── helpers ──────────────────────────────────────────────────────────
 
-async function callOpenAIStream(messages, toolDefs, apiKey) {
+async function callOpenAIStream(messages, toolDefs, apiKey, model) {
   const client = new OpenAI({ apiKey });
   let stream;
   try {
     stream = await client.chat.completions.create(
       {
-        model: MODEL,
+        model: model || DEFAULT_MODEL,
         messages,
         tools: toolDefs,
         temperature: 0,

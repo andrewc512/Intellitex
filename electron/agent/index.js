@@ -1,16 +1,17 @@
 const { runAgent } = require('./runner');
+const settings = require('../settings');
 
-async function processAgentRequest(context, userPrompt, apiKey, onProgress, history) {
-  if (!apiKey) throw new Error('OpenAI API key not configured');
-  return runAgent(context, userPrompt, apiKey, onProgress, history);
+async function processAgentRequest(context, userPrompt, apiKey, onProgress, history, { model } = {}) {
+  if (!apiKey) throw new Error('API key not configured. Open Settings to add one.');
+  return runAgent(context, userPrompt, apiKey, onProgress, history, { model });
 }
 
-function checkApiKey() {
-  return !!process.env.OPENAI_API_KEY;
+async function checkApiKey() {
+  return settings.hasApiKey();
 }
 
-function getApiKey() {
-  return process.env.OPENAI_API_KEY || null;
+async function getApiKey() {
+  return settings.getApiKey();
 }
 
 module.exports = { processAgentRequest, checkApiKey, getApiKey };

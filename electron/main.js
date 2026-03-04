@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs/promises");
 const { compile } = require("./compiler");
 const { processAgentRequest, checkApiKey, getApiKey } = require("./agent/index");
+const settings = require("./settings");
 
 const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
@@ -295,19 +296,24 @@ ipcMain.handle("file:chooseDirectory", async () => {
 });
 
 ipcMain.handle("agent:process", async (event, context, userPrompt, history) => {
-  const apiKey = getApiKey();
-  if (!apiKey) return { error: "Set the OPENAI_API_KEY environment variable." };
+  const apiKey = await getApiKey();
+  if (!apiKey) return { error: "No API key configured. Open Settings to add one." };
+  const s = await settings.loadSettings();
   const sender = event.sender;
   try {
     return await processAgentRequest(context, userPrompt, apiKey, (status) => {
       sender.send("agent:progress", status);
-    }, history);
+    }, history, { model: s.model });
   } catch (err) {
     return { error: err.message };
   }
 });
 
 ipcMain.handle("agent:checkApiKey", () => checkApiKey());
+
+ipcMain.handle("settings:get", () => settings.getPublicSettings());
+ipcMain.handle("settings:save", (_event, patch) => settings.saveSettings(patch));
+ipcMain.handle("settings:setApiKey", (_event, provider, key) => settings.setApiKey(provider, key));
 
 app.whenReady().then(createWindow);
 
