@@ -158,7 +158,14 @@ function renderEducation(section) {
     const gpa = fieldVal(f.gpa || "");
     const degree = gpa ? `${deg} - GPA: ${gpa}` : deg;
     const rawGrad = escapeLatex(fieldVal(f.grad || f.graduation || ""));
-    const grad = rawGrad ? `Expected Graduation: ${rawGrad}` : "";
+    let gradLabel = "Expected Graduation:";
+    if (rawGrad) {
+      const parsed = new Date(rawGrad);
+      if (!isNaN(parsed) && parsed < new Date()) {
+        gradLabel = "Graduated:";
+      }
+    }
+    const grad = rawGrad ? `${gradLabel} ${rawGrad}` : "";
 
     lines.push("  \\resumeSubheading");
     lines.push(`    {${school}}{\\textbf{${loc}}}`);
