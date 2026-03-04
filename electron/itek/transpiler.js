@@ -24,6 +24,14 @@ function fieldVal(field) {
   return String(field);
 }
 
+function processInlineFormatting(text) {
+  return text.replace(/\*\*(.+?)\*\*/g, "\\textbf{$1}");
+}
+
+function formatText(text) {
+  return processInlineFormatting(escapeLatex(text));
+}
+
 function capitalize(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -113,7 +121,7 @@ function renderHeader(doc) {
 
   lines.push("\\begin{center}");
   lines.push(
-    `  \\textbf{\\Huge \\scshape ${escapeLatex(doc.name)}} \\\\ \\vspace{-1pt}`
+    `  \\textbf{\\Huge \\scshape ${escapeLatex(doc.name)}} \\\\ \\vspace{4pt}`
   );
 
   if (socials) {
@@ -141,6 +149,7 @@ function renderHeader(doc) {
   }
 
   lines.push("\\end{center}");
+  lines.push("\\vspace{-10pt}");
   return lines;
 }
 
@@ -175,7 +184,7 @@ function renderEducation(section) {
     if (courses) {
       lines.push("  \\resumeItemListStart");
       lines.push(
-        `    \\resumeItem{\\textbf{Relevant Coursework:} ${escapeLatex(courses)}}`
+        `    \\resumeItem{\\textbf{Relevant Coursework:} ${formatText(courses)}}`
       );
       lines.push("  \\resumeItemListEnd");
     }
@@ -216,7 +225,7 @@ function renderExperience(section) {
     if (entry.bullets.length) {
       lines.push("  \\resumeItemListStart");
       for (const b of entry.bullets) {
-        lines.push(`    \\resumeItem{${escapeLatex(b)}}`);
+        lines.push(`    \\resumeItem{${formatText(b)}}`);
       }
       lines.push("  \\resumeItemListEnd");
     }
@@ -234,7 +243,7 @@ function renderSkills(section) {
 
   const entries = Object.entries(section.fields);
   entries.forEach(([key, value], i) => {
-    const val = escapeLatex(fieldVal(value));
+    const val = formatText(fieldVal(value));
     const suffix = i < entries.length - 1 ? " \\\\" : "";
     lines.push(
       `    \\textbf{${escapeLatex(capitalize(key))}}{: ${val}}${suffix}`
@@ -274,7 +283,7 @@ function renderProjects(section) {
     if (entry.bullets.length) {
       lines.push("  \\resumeItemListStart");
       for (const b of entry.bullets) {
-        lines.push(`    \\resumeItem{${escapeLatex(b)}}`);
+        lines.push(`    \\resumeItem{${formatText(b)}}`);
       }
       lines.push("  \\resumeItemListEnd");
     }
