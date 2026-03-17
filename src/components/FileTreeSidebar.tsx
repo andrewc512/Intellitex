@@ -347,14 +347,17 @@ export function FileTreeSidebar({
     setContextMenu({ x: e.clientX, y: e.clientY, node: null, parentDir: rootDir });
   }, [rootDir]);
 
-  const startCreate = useCallback((type: "file" | "folder") => {
-    if (!contextMenu) return;
-    const dir = contextMenu.parentDir;
+  const startCreateIn = useCallback((dir: string, type: "file" | "folder") => {
     setCreatingIn(dir);
     setCreatingType(type);
     setExpanded((prev) => new Set(prev).add(dir));
+  }, []);
+
+  const startCreate = useCallback((type: "file" | "folder") => {
+    if (!contextMenu) return;
+    startCreateIn(contextMenu.parentDir, type);
     setContextMenu(null);
-  }, [contextMenu]);
+  }, [contextMenu, startCreateIn]);
 
   const handleCreateSubmit = useCallback((name: string) => {
     if (!creatingIn || !creatingType) return;
@@ -406,22 +409,84 @@ export function FileTreeSidebar({
     dragRef.current = null;
   }, []);
 
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!addMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) setAddMenuOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") setAddMenuOpen(false); };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [addMenuOpen]);
+
   return (
     <div className="ftree-sidebar" style={{ width }} onContextMenu={handleRootContextMenu}>
       <div className="ftree-header">
         <span className="ftree-header-title">{projectName}</span>
-        <button
-          type="button"
-          className="btn-icon ftree-header-btn"
-          onClick={onRefresh}
-          title="Refresh file tree"
-          aria-label="Refresh"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="23 4 23 10 17 10" />
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-          </svg>
-        </button>
+        <div className="ftree-header-actions">
+          <div className="ftree-add-wrapper" ref={addMenuRef}>
+            <button
+              type="button"
+              className="btn-icon ftree-header-btn"
+              onClick={() => setAddMenuOpen((v) => !v)}
+              title="Add file or folder"
+              aria-label="Add"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            {addMenuOpen && (
+              <div className="ftree-add-menu">
+                <button
+                  type="button"
+                  className="ftree-context-item"
+                  onClick={() => { startCreateIn(rootDir, "file"); setAddMenuOpen(false); }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="12" y1="18" x2="12" y2="12" />
+                    <line x1="9" y1="15" x2="15" y2="15" />
+                  </svg>
+                  New File
+                </button>
+                <button
+                  type="button"
+                  className="ftree-context-item"
+                  onClick={() => { startCreateIn(rootDir, "folder"); setAddMenuOpen(false); }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    <line x1="12" y1="11" x2="12" y2="17" />
+                    <line x1="9" y1="14" x2="15" y2="14" />
+                  </svg>
+                  New Folder
+                </button>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            className="btn-icon ftree-header-btn"
+            onClick={onRefresh}
+            title="Refresh file tree"
+            aria-label="Refresh"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+          </button>
+        </div>
       </div>
       <div className="ftree-body" role="tree" aria-label="Project files">
         {creatingIn === rootDir && creatingType && (
@@ -456,7 +521,7 @@ export function FileTreeSidebar({
         ))}
         {tree.length === 0 && !creatingIn && (
           <div className="ftree-empty">
-            No files yet. Right-click to add.
+            No files yet. Use + to add.
           </div>
         )}
       </div>
