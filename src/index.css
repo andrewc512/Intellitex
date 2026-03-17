@@ -2402,6 +2402,198 @@ body, #root {
   background: var(--border-subtle);
 }
 
+/* ── Tab Bar ──────────────────────────────── */
+
+.tabbar {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+  min-height: 0;
+}
+
+.tabbar-scroll {
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
+}
+.tabbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.tabbar-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  height: 34px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+  position: relative;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  user-select: none;
+}
+
+.tabbar-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.tabbar-tab:hover .tabbar-tab-close {
+  opacity: 1;
+}
+
+.tabbar-tab--active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.tabbar-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+.tabbar-tab--active:hover {
+  background: var(--bg-surface);
+}
+
+.tabbar-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.tabbar-icon--tex {
+  color: var(--accent-text);
+}
+.tabbar-icon--bib {
+  color: var(--success);
+}
+.tabbar-icon--image {
+  color: var(--warning);
+}
+
+.tabbar-tab-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabbar-tab-dirty {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.tabbar-tab--active .tabbar-tab-dirty {
+  background: var(--accent);
+}
+
+.tabbar-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin-left: 2px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.tabbar-tab--active .tabbar-tab-close {
+  opacity: 0.6;
+}
+.tabbar-tab-close:hover {
+  opacity: 1 !important;
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+/* Unsaved-changes confirm dialog */
+
+.tabbar-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  animation: settings-backdrop-in 120ms ease;
+}
+
+.tabbar-confirm {
+  width: 360px;
+  padding: 20px 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  animation: settings-modal-in 180ms ease;
+}
+
+.tabbar-confirm-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+.tabbar-confirm-text strong {
+  font-weight: 600;
+}
+
+.tabbar-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tabbar-confirm-discard {
+  color: var(--error) !important;
+  border-color: var(--error) !important;
+}
+.tabbar-confirm-discard:hover {
+  background: var(--error-muted) !important;
+}
+
+/* Editor panel tweaks for tabbed mode */
+
+.editor-panel--tabbed > .panel-header {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+}
+.editor-panel--tabbed > .panel-header .panel-header-title {
+  font-size: 10px;
+}
+
+.panel-header--editor {
+  border-bottom: none;
+}
+
+.panel-header-controls--always {
+  opacity: 1;
+}
+
 /* ── Editor-with-sidebar layout ───────────── */
 
 .editor-with-sidebar {

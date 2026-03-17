@@ -5,6 +5,7 @@ import { PDFPanel } from "./panels/PDFPanel";
 import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { FileTreeSidebar } from "./components/FileTreeSidebar";
+import { TabBar } from "./components/TabBar";
 import { SettingsModal } from "./components/SettingsModal";
 import { useTheme } from "./hooks/useTheme";
 import { ThemeDropdown } from "./components/ThemeDropdown";
@@ -224,6 +225,29 @@ function App() {
     }
     await refreshFileTree();
   }, [refreshFileTree, activeTabPath]);
+
+  // ── Tab operations ─────────────────────────
+
+  const handleSelectTab = useCallback((filePath: string) => {
+    const tab = openTabs.find((t) => t.filePath === filePath);
+    if (!tab) return;
+    setActiveTabPath(filePath);
+    contentRef.current = tab.content;
+  }, [openTabs]);
+
+  const handleCloseTab = useCallback((filePath: string) => {
+    setOpenTabs((prev) => {
+      const idx = prev.findIndex((t) => t.filePath === filePath);
+      if (idx === -1) return prev;
+      const next = prev.filter((t) => t.filePath !== filePath);
+      if (filePath === activeTabPath) {
+        const newActive = next[Math.min(idx, next.length - 1)] ?? null;
+        setActiveTabPath(newActive?.filePath ?? null);
+        contentRef.current = newActive?.content ?? "";
+      }
+      return next;
+    });
+  }, [activeTabPath]);
 
   // ── File operations within project ──────────
 
@@ -500,6 +524,12 @@ function App() {
                       />
                     )}
                     <div className="editor-main">
+                      <TabBar
+                        tabs={openTabs}
+                        activeTabPath={activeTabPath}
+                        onSelectTab={handleSelectTab}
+                        onCloseTab={handleCloseTab}
+                      />
                       <EditorPanel
                         content={activeTab?.content ?? ""}
                         filePath={activeTab?.filePath ?? null}
