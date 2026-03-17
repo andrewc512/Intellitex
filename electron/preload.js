@@ -20,6 +20,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getRecentProjects: () => ipcRenderer.invoke("project:getRecents"),
   removeRecentProject: (dirPath) => ipcRenderer.invoke("project:removeRecent", dirPath),
   newProjectFile: (rootDir) => ipcRenderer.invoke("project:newFile", rootDir),
+  createFile: (parentDir, fileName) => ipcRenderer.invoke("project:createFile", parentDir, fileName),
+  createFolder: (parentDir, folderName) => ipcRenderer.invoke("project:createFolder", parentDir, folderName),
+  deleteFile: (filePath) => ipcRenderer.invoke("project:deleteFile", filePath),
+  renameEntry: (oldPath, newName) => ipcRenderer.invoke("project:renameEntry", oldPath, newName),
   onMenuSave: (callback) => {
     ipcRenderer.on("menu:save", callback);
     return () => ipcRenderer.removeListener("menu:save", callback);

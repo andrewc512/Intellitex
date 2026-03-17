@@ -4,11 +4,13 @@ import { EditorPanel } from "./panels/EditorPanel";
 import { PDFPanel } from "./panels/PDFPanel";
 import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
+import { FileTreeSidebar } from "./components/FileTreeSidebar";
 import { SettingsModal } from "./components/SettingsModal";
 import { useTheme } from "./hooks/useTheme";
 import { ThemeDropdown } from "./components/ThemeDropdown";
 import type { CompileStatus } from "./compiler/types";
 import type { EditorSelection } from "./agent/types";
+import type { FileTreeNode } from "./types/electron";
 
 type PanelId = "editor" | "pdf" | "agent";
 
@@ -45,6 +47,8 @@ function App() {
   const [pendingDiff, setPendingDiff] = useState<PendingDiff | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKeyVersion, setApiKeyVersion] = useState(0);
+  const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
 
   const activeTab = useMemo(
     () => openTabs.find((t) => t.filePath === activeTabPath) ?? null,
@@ -101,6 +105,7 @@ function App() {
     setPendingDiff(null);
 
     const tree = await window.electronAPI.readProjectTree(info.rootDir);
+    setFileTree(tree);
     const mainFile =
       tree.find((n) => n.type === "file" && n.name === "main.tex") ||
       tree.find((n) => n.type === "file" && n.name.endsWith(".tex")) ||
@@ -145,7 +150,80 @@ function App() {
     contentRef.current = "";
     setCompileState({ status: "idle" });
     setPendingDiff(null);
+    setFileTree([]);
   }, []);
+
+  const refreshFileTree = useCallback(async () => {
+    if (!project) return;
+    const tree = await window.electronAPI.readProjectTree(project.rootDir);
+    setFileTree(tree);
+  }, [project]);
+
+  // ── File tree operations ────────────────────
+
+  const handleFileTreeSelect = useCallback(async (filePath: string) => {
+    const existing = openTabs.find((t) => t.filePath === filePath);
+    if (existing) {
+      setActiveTabPath(filePath);
+      contentRef.current = existing.content;
+      return;
+    }
+    const data = await window.electronAPI.openPath(filePath);
+    contentRef.current = data.content;
+    setOpenTabs((prev) => [
+      ...prev,
+      { filePath: data.filePath, content: data.content, isDirty: false },
+    ]);
+    setActiveTabPath(data.filePath);
+    setCompileState({ status: "idle" });
+  }, [openTabs]);
+
+  const handleTreeCreateFile = useCallback(async (parentDir: string, fileName: string) => {
+    const result = await window.electronAPI.createFile(parentDir, fileName);
+    if ("error" in result) return;
+    await refreshFileTree();
+    contentRef.current = result.content;
+    setOpenTabs((prev) => [
+      ...prev,
+      { filePath: result.filePath, content: result.content, isDirty: false },
+    ]);
+    setActiveTabPath(result.filePath);
+  }, [refreshFileTree]);
+
+  const handleTreeCreateFolder = useCallback(async (parentDir: string, folderName: string) => {
+    const result = await window.electronAPI.createFolder(parentDir, folderName);
+    if ("error" in result) return;
+    await refreshFileTree();
+  }, [refreshFileTree]);
+
+  const handleTreeDelete = useCallback(async (entryPath: string) => {
+    await window.electronAPI.deleteFile(entryPath);
+    setOpenTabs((prev) => prev.filter((t) => !t.filePath.startsWith(entryPath)));
+    if (activeTabPath?.startsWith(entryPath)) {
+      setActiveTabPath(null);
+      contentRef.current = "";
+    }
+    await refreshFileTree();
+  }, [refreshFileTree, activeTabPath]);
+
+  const handleTreeRename = useCallback(async (oldPath: string, newName: string) => {
+    const result = await window.electronAPI.renameEntry(oldPath, newName);
+    if ("error" in result) return;
+    setOpenTabs((prev) =>
+      prev.map((tab) => {
+        if (tab.filePath === oldPath) return { ...tab, filePath: result.newPath };
+        if (tab.filePath.startsWith(oldPath + "/")) {
+          return { ...tab, filePath: tab.filePath.replace(oldPath, result.newPath) };
+        }
+        return tab;
+      })
+    );
+    if (activeTabPath === oldPath) setActiveTabPath(result.newPath);
+    else if (activeTabPath?.startsWith(oldPath + "/")) {
+      setActiveTabPath(activeTabPath.replace(oldPath, result.newPath));
+    }
+    await refreshFileTree();
+  }, [refreshFileTree, activeTabPath]);
 
   // ── File operations within project ──────────
 
@@ -160,7 +238,8 @@ function App() {
     ]);
     setActiveTabPath(result.filePath);
     setCompileState({ status: "idle" });
-  }, [project]);
+    await refreshFileTree();
+  }, [project, refreshFileTree]);
 
   const handleOpenFileInProject = useCallback(async () => {
     const result = await window.electronAPI.openFile();
@@ -330,6 +409,19 @@ function App() {
         <div className="header-spacer" />
 
         <div className="header-actions" role="toolbar" aria-label="Document actions">
+          <button
+            className={`btn-icon panel-toggle ${!sidebarVisible ? "panel-toggle--hidden" : ""}`}
+            type="button"
+            onClick={() => setSidebarVisible((v) => !v)}
+            aria-label={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
+            title={sidebarVisible ? "Hide sidebar" : "Show sidebar"}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+            </svg>
+          </button>
+
           {(["editor", "agent"] as PanelId[]).map((id) => (
             <button
               key={id}
@@ -392,21 +484,39 @@ function App() {
             switch (id) {
               case "editor":
                 return (
-                  <EditorPanel
-                    content={activeTab?.content ?? ""}
-                    filePath={activeTab?.filePath ?? null}
-                    theme={theme}
-                    onChange={handleEditorChange}
-                    onSave={handleSave}
-                    onRename={handleRename}
-                    onAddToChat={handleAddToChat}
-                    pendingDiff={pendingDiff}
-                    onAcceptDiff={handleAcceptDiff}
-                    onDiscardDiff={handleDiscardDiff}
-                    onClose={() => togglePanel("editor")}
-                    onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
-                    onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
-                  />
+                  <div className="editor-with-sidebar">
+                    {sidebarVisible && project && (
+                      <FileTreeSidebar
+                        rootDir={project.rootDir}
+                        projectName={project.name}
+                        tree={fileTree}
+                        activeFilePath={activeTabPath}
+                        onFileSelect={handleFileTreeSelect}
+                        onCreateFile={handleTreeCreateFile}
+                        onCreateFolder={handleTreeCreateFolder}
+                        onDeleteEntry={handleTreeDelete}
+                        onRenameEntry={handleTreeRename}
+                        onRefresh={refreshFileTree}
+                      />
+                    )}
+                    <div className="editor-main">
+                      <EditorPanel
+                        content={activeTab?.content ?? ""}
+                        filePath={activeTab?.filePath ?? null}
+                        theme={theme}
+                        onChange={handleEditorChange}
+                        onSave={handleSave}
+                        onRename={handleRename}
+                        onAddToChat={handleAddToChat}
+                        pendingDiff={pendingDiff}
+                        onAcceptDiff={handleAcceptDiff}
+                        onDiscardDiff={handleDiscardDiff}
+                        onClose={() => togglePanel("editor")}
+                        onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
+                        onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
+                      />
+                    </div>
+                  </div>
                 );
               case "pdf":
                 return (

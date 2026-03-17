@@ -38,6 +38,10 @@ interface ElectronAPI {
   getRecentProjects: () => Promise<string[]>;
   removeRecentProject: (dirPath: string) => Promise<string[]>;
   newProjectFile: (rootDir: string) => Promise<{ filePath: string; content: string } | null>;
+  createFile: (parentDir: string, fileName: string) => Promise<{ filePath: string; content: string; error?: undefined } | { error: string }>;
+  createFolder: (parentDir: string, folderName: string) => Promise<{ folderPath: string; error?: undefined } | { error: string }>;
+  deleteFile: (filePath: string) => Promise<void>;
+  renameEntry: (oldPath: string, newName: string) => Promise<{ newPath: string; error?: undefined } | { error: string }>;
 
   // Menu events
   onMenuSave: (callback: () => void) => () => void;

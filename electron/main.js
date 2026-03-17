@@ -431,6 +431,54 @@ ipcMain.handle("project:newFile", async (_event, rootDir) => {
   return { filePath: rawPath, content: template };
 });
 
+ipcMain.handle("project:createFile", async (_event, parentDir, fileName) => {
+  const filePath = path.join(parentDir, fileName);
+  try {
+    await fs.access(filePath);
+    return { error: "A file with that name already exists." };
+  } catch {
+    // does not exist — safe to create
+  }
+  const template = fileName.endsWith(".tex") ? "% New file\n" : "";
+  await fs.writeFile(filePath, template, "utf-8");
+  return { filePath, content: template };
+});
+
+ipcMain.handle("project:createFolder", async (_event, parentDir, folderName) => {
+  const folderPath = path.join(parentDir, folderName);
+  try {
+    await fs.access(folderPath);
+    return { error: "A folder with that name already exists." };
+  } catch {
+    // does not exist — safe to create
+  }
+  await fs.mkdir(folderPath, { recursive: true });
+  return { folderPath };
+});
+
+ipcMain.handle("project:deleteFile", async (_event, filePath) => {
+  const stat = await fs.stat(filePath);
+  if (stat.isDirectory()) {
+    await fs.rm(filePath, { recursive: true, force: true });
+  } else {
+    await fs.unlink(filePath);
+  }
+});
+
+ipcMain.handle("project:renameEntry", async (_event, oldPath, newName) => {
+  const dir = path.dirname(oldPath);
+  const newPath = path.join(dir, newName);
+  if (newPath === oldPath) return oldPath;
+  try {
+    await fs.access(newPath);
+    return { error: "An item with that name already exists." };
+  } catch {
+    // does not exist — safe to rename
+  }
+  await fs.rename(oldPath, newPath);
+  return { newPath };
+});
+
 ipcMain.handle("agent:process", async (event, context, userPrompt, history) => {
   const apiKey = await getApiKey();
   if (!apiKey) return { error: "No API key configured. Open Settings to add one." };
