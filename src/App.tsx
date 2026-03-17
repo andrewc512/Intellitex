@@ -1,8 +1,5 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { EditorPanel } from "./panels/EditorPanel";
-import { PDFPanel } from "./panels/PDFPanel";
-import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { FileTreeSidebar } from "./components/FileTreeSidebar";
 import { TabBar } from "./components/TabBar";
@@ -13,6 +10,18 @@ import { ThemeDropdown } from "./components/ThemeDropdown";
 import type { CompileStatus } from "./compiler/types";
 import type { EditorSelection } from "./agent/types";
 import type { FileTreeNode } from "./types/electron";
+
+const EditorPanel = React.lazy(() =>
+  import("./panels/EditorPanel").then((m) => ({ default: m.EditorPanel }))
+);
+
+const PDFPanel = React.lazy(() =>
+  import("./panels/PDFPanel").then((m) => ({ default: m.PDFPanel }))
+);
+
+const AgentPanel = React.lazy(() =>
+  import("./panels/AgentPanel").then((m) => ({ default: m.AgentPanel }))
+);
 
 type PanelId = "editor" | "pdf" | "agent";
 
@@ -580,55 +589,61 @@ function App() {
                           projectRoot={project.rootDir}
                         />
                       ) : (
-                        <EditorPanel
-                          content={activeTab?.content ?? ""}
-                          filePath={activeTab?.filePath ?? null}
-                          theme={theme}
-                          onChange={handleEditorChange}
-                          onSave={handleSave}
-                          onRename={handleRename}
-                          onAddToChat={handleAddToChat}
-                          onInsertRef={editorInsertRef}
-                          pendingDiff={pendingDiff}
-                          onAcceptDiff={handleAcceptDiff}
-                          onDiscardDiff={handleDiscardDiff}
-                          onClose={() => togglePanel("editor")}
-                          onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
-                          onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
-                        />
+                        <Suspense fallback={<div className="panel-loading">Loading editor…</div>}>
+                          <EditorPanel
+                            content={activeTab?.content ?? ""}
+                            filePath={activeTab?.filePath ?? null}
+                            theme={theme}
+                            onChange={handleEditorChange}
+                            onSave={handleSave}
+                            onRename={handleRename}
+                            onAddToChat={handleAddToChat}
+                            onInsertRef={editorInsertRef}
+                            pendingDiff={pendingDiff}
+                            onAcceptDiff={handleAcceptDiff}
+                            onDiscardDiff={handleDiscardDiff}
+                            onClose={() => togglePanel("editor")}
+                            onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
+                            onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
+                          />
+                        </Suspense>
                       )}
                     </div>
                   </div>
                 );
               case "pdf":
                 return (
-                  <PDFPanel
-                    compileState={compileState}
-                    onMoveLeft={canMoveLeft ? () => movePanel("pdf", -1) : undefined}
-                    onMoveRight={canMoveRight ? () => movePanel("pdf", 1) : undefined}
-                  />
+                  <Suspense fallback={<div className="panel-loading">Loading PDF viewer…</div>}>
+                    <PDFPanel
+                      compileState={compileState}
+                      onMoveLeft={canMoveLeft ? () => movePanel("pdf", -1) : undefined}
+                      onMoveRight={canMoveRight ? () => movePanel("pdf", 1) : undefined}
+                    />
+                  </Suspense>
                 );
               case "agent":
                 return (
-                  <AgentPanel
-                    filePath={activeTab?.filePath ?? null}
-                    content={activeTab?.content ?? ""}
-                    compileErrors={
-                      compileState.status === "done"
-                        ? compileState.result.errors
-                            .filter((e) => e.type === "error" && e.line !== null)
-                            .map((e) => ({ file: activeTab?.filePath ?? "unknown", line: e.line!, message: e.message }))
-                        : undefined
-                    }
-                    chatAttachment={chatAttachment}
-                    onClearAttachment={() => setChatAttachment(null)}
-                    onFileEdited={handleFileEdited}
-                    onClose={() => togglePanel("agent")}
-                    onMoveLeft={canMoveLeft ? () => movePanel("agent", -1) : undefined}
-                    onMoveRight={canMoveRight ? () => movePanel("agent", 1) : undefined}
-                    onOpenSettings={() => setSettingsOpen(true)}
-                    apiKeyVersion={apiKeyVersion}
-                  />
+                  <Suspense fallback={<div className="panel-loading">Loading assistant…</div>}>
+                    <AgentPanel
+                      filePath={activeTab?.filePath ?? null}
+                      content={activeTab?.content ?? ""}
+                      compileErrors={
+                        compileState.status === "done"
+                          ? compileState.result.errors
+                              .filter((e) => e.type === "error" && e.line !== null)
+                              .map((e) => ({ file: activeTab?.filePath ?? "unknown", line: e.line!, message: e.message }))
+                          : undefined
+                      }
+                      chatAttachment={chatAttachment}
+                      onClearAttachment={() => setChatAttachment(null)}
+                      onFileEdited={handleFileEdited}
+                      onClose={() => togglePanel("agent")}
+                      onMoveLeft={canMoveLeft ? () => movePanel("agent", -1) : undefined}
+                      onMoveRight={canMoveRight ? () => movePanel("agent", 1) : undefined}
+                      onOpenSettings={() => setSettingsOpen(true)}
+                      apiKeyVersion={apiKeyVersion}
+                    />
+                  </Suspense>
                 );
             }
           })();
