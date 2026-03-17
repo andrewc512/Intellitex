@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   createFolder: (parentDir, folderName) => ipcRenderer.invoke("project:createFolder", parentDir, folderName),
   deleteFile: (filePath) => ipcRenderer.invoke("project:deleteFile", filePath),
   renameEntry: (oldPath, newName) => ipcRenderer.invoke("project:renameEntry", oldPath, newName),
+  readImage: (filePath) => ipcRenderer.invoke("project:readImage", filePath),
+  copyFileIn: (sourcePath, destDir) => ipcRenderer.invoke("project:copyFileIn", sourcePath, destDir),
   onMenuSave: (callback) => {
     ipcRenderer.on("menu:save", callback);
     return () => ipcRenderer.removeListener("menu:save", callback);

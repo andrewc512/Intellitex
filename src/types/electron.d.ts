@@ -42,6 +42,8 @@ interface ElectronAPI {
   createFolder: (parentDir: string, folderName: string) => Promise<{ folderPath: string; error?: undefined } | { error: string }>;
   deleteFile: (filePath: string) => Promise<void>;
   renameEntry: (oldPath: string, newName: string) => Promise<{ newPath: string; error?: undefined } | { error: string }>;
+  readImage: (filePath: string) => Promise<{ dataUrl: string; error?: undefined } | { error: string }>;
+  copyFileIn: (sourcePath: string, destDir: string) => Promise<{ destPath: string; error?: undefined } | { error: string }>;
 
   // Menu events
   onMenuSave: (callback: () => void) => () => void;

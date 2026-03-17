@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect, useState, type MutableRefObject } from "react";
 import Editor, { DiffEditor, type Monaco } from "@monaco-editor/react";
 import type { editor, languages } from "monaco-editor";
 import type { Theme } from "../hooks/useTheme";
@@ -18,6 +18,7 @@ interface EditorPanelProps {
   onSave: () => void;
   onRename: (newName: string) => void;
   onAddToChat?: (selection: EditorSelection) => void;
+  onInsertRef?: MutableRefObject<((text: string) => void) | null>;
   pendingDiff?: PendingDiff | null;
   onAcceptDiff?: () => void;
   onDiscardDiff?: () => void;
@@ -286,11 +287,30 @@ function setupSectionDrag(ed: editor.IStandaloneCodeEditor, m: typeof import("mo
   });
 }
 
-export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename: _onRename, onAddToChat, pendingDiff, onAcceptDiff, onDiscardDiff, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
+export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename: _onRename, onAddToChat, onInsertRef, pendingDiff, onAcceptDiff, onDiscardDiff, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
   const language = getEditorLanguage(filePath);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const onAddToChatRef = useRef(onAddToChat);
   onAddToChatRef.current = onAddToChat;
+  const [dragOver, setDragOver] = useState(false);
+
+  const insertTextAtCursor = useCallback((text: string) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const pos = ed.getPosition();
+    if (!pos) return;
+    ed.executeEdits("insert-image", [{
+      range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+      text,
+      forceMoveMarkers: true,
+    }]);
+    ed.focus();
+  }, []);
+
+  useEffect(() => {
+    if (onInsertRef) onInsertRef.current = insertTextAtCursor;
+    return () => { if (onInsertRef) onInsertRef.current = null; };
+  }, [onInsertRef, insertTextAtCursor]);
 
   const getSelectionFromEditor = useCallback((): EditorSelection | null => {
     const ed = editorRef.current;
@@ -302,8 +322,44 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
     return { startLine: sel.startLineNumber, endLine: sel.endLineNumber, text };
   }, []);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("application/x-intellitex-image")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      setDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback(() => setDragOver(false), []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    setDragOver(false);
+    const imgPath = e.dataTransfer.getData("application/x-intellitex-image");
+    if (!imgPath) return;
+    e.preventDefault();
+    const name = imgPath.split("/").pop()!;
+    const parts = imgPath.split("/");
+    let relPath = name;
+    if (filePath) {
+      const fileDir = filePath.substring(0, filePath.lastIndexOf("/"));
+      const fileParts = fileDir.split("/");
+      let common = 0;
+      while (common < fileParts.length && common < parts.length && fileParts[common] === parts[common]) common++;
+      const ups = fileParts.length - common;
+      relPath = [...Array(ups).fill(".."), ...parts.slice(common)].join("/");
+    }
+    insertTextAtCursor(`\\includegraphics{${relPath}}`);
+  }, [filePath, insertTextAtCursor]);
+
   return (
-    <div className="panel editor-panel--tabbed" role="region" aria-label="Editor">
+    <div
+      className={`panel editor-panel--tabbed ${dragOver ? "editor-panel--drag-over" : ""}`}
+      role="region"
+      aria-label="Editor"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="panel-header panel-header--editor">
         <span className="panel-header-title">Editor</span>
         <div className="panel-header-controls panel-header-controls--always">

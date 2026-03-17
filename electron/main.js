@@ -479,6 +479,51 @@ ipcMain.handle("project:renameEntry", async (_event, oldPath, newName) => {
   return { newPath };
 });
 
+// ── Image operations ──────────────────────────
+
+ipcMain.handle("project:readImage", async (_event, filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeMap = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+  };
+  const mime = mimeMap[ext];
+  if (!mime) return { error: "Unsupported image format" };
+  const buffer = await fs.readFile(filePath);
+  const base64 = buffer.toString("base64");
+  return { dataUrl: `data:${mime};base64,${base64}` };
+});
+
+ipcMain.handle("project:copyFileIn", async (_event, sourcePath, destDir) => {
+  const name = path.basename(sourcePath);
+  const destPath = path.join(destDir, name);
+  try {
+    await fs.access(destPath);
+    const win = BrowserWindow.getFocusedWindow();
+    const { response } = await dialog.showMessageBox(win, {
+      type: "warning",
+      title: "File already exists",
+      message: `"${name}" already exists in this folder.`,
+      detail: "Copying will replace the existing file.",
+      buttons: ["Replace", "Cancel"],
+      defaultId: 1,
+      cancelId: 1,
+    });
+    if (response === 1) return { error: "cancelled" };
+  } catch {
+    // does not exist — safe to copy
+  }
+  await fs.copyFile(sourcePath, destPath);
+  return { destPath };
+});
+
+// ── Agent operations ──────────────────────────
+
 ipcMain.handle("agent:process", async (event, context, userPrompt, history) => {
   const apiKey = await getApiKey();
   if (!apiKey) return { error: "No API key configured. Open Settings to add one." };

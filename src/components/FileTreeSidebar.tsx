@@ -7,6 +7,9 @@ interface FileTreeSidebarProps {
   tree: FileTreeNode[];
   activeFilePath: string | null;
   onFileSelect: (filePath: string) => void;
+  onImageSelect: (filePath: string) => void;
+  onInsertImage: (filePath: string) => void;
+  onExternalFileDrop: (sourcePath: string, destDir: string) => void;
   onCreateFile: (parentDir: string, fileName: string) => void;
   onCreateFolder: (parentDir: string, folderName: string) => void;
   onDeleteEntry: (entryPath: string) => void;
@@ -133,6 +136,7 @@ function ContextMenu({
   onNewFolder,
   onRename,
   onDelete,
+  onInsertImage,
 }: {
   state: ContextMenuState;
   onClose: () => void;
@@ -140,6 +144,7 @@ function ContextMenu({
   onNewFolder: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onInsertImage: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -159,9 +164,21 @@ function ContextMenu({
   }, [onClose]);
 
   const isDir = state.node === null || state.node.type === "directory";
+  const isImage = state.node !== null && state.node.type === "file" && isImageFile(state.node.name);
 
   return (
     <div ref={menuRef} className="ftree-context-menu" style={{ top: state.y, left: state.x }}>
+      {isImage && (
+        <>
+          <button type="button" className="ftree-context-item" onClick={() => { onInsertImage(); onClose(); }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+            </svg>
+            Insert into editor
+          </button>
+          <div className="ftree-context-sep" />
+        </>
+      )}
       <button type="button" className="ftree-context-item" onClick={() => { onNew(); onClose(); }}>
         New File
       </button>
@@ -195,6 +212,7 @@ function TreeNode({
   creatingType,
   onToggle,
   onSelect,
+  onImageSelect,
   onContextMenu,
   onRenameSubmit,
   onRenameCancel,
@@ -210,6 +228,7 @@ function TreeNode({
   creatingType: "file" | "folder" | null;
   onToggle: (path: string) => void;
   onSelect: (filePath: string) => void;
+  onImageSelect: (filePath: string) => void;
   onContextMenu: (e: React.MouseEvent, node: FileTreeNode) => void;
   onRenameSubmit: (oldPath: string, newName: string) => void;
   onRenameCancel: () => void;
@@ -221,14 +240,23 @@ function TreeNode({
   const isActive = node.path === activeFilePath;
   const isRenaming = node.path === renamingPath;
   const isCreatingHere = node.path === creatingIn;
+  const isImage = !isDir && isImageFile(node.name);
 
   const handleClick = () => {
     if (isDir) {
       onToggle(node.path);
+    } else if (isImage) {
+      onImageSelect(node.path);
     } else if (isTextFile(node.name)) {
       onSelect(node.path);
     }
   };
+
+  const handleDragStart = useCallback((e: React.DragEvent) => {
+    if (!isImage) return;
+    e.dataTransfer.setData("application/x-intellitex-image", node.path);
+    e.dataTransfer.effectAllowed = "copy";
+  }, [isImage, node.path]);
 
   return (
     <>
@@ -237,6 +265,8 @@ function TreeNode({
         style={{ paddingLeft: 8 + depth * 16 }}
         onClick={handleClick}
         onContextMenu={(e) => onContextMenu(e, node)}
+        draggable={isImage}
+        onDragStart={handleDragStart}
         role="treeitem"
         aria-selected={isActive}
         aria-expanded={isDir ? isOpen : undefined}
@@ -293,6 +323,7 @@ function TreeNode({
               creatingType={creatingType}
               onToggle={onToggle}
               onSelect={onSelect}
+              onImageSelect={onImageSelect}
               onContextMenu={onContextMenu}
               onRenameSubmit={onRenameSubmit}
               onRenameCancel={onRenameCancel}
@@ -314,6 +345,9 @@ export function FileTreeSidebar({
   tree,
   activeFilePath,
   onFileSelect,
+  onImageSelect,
+  onInsertImage,
+  onExternalFileDrop,
   onCreateFile,
   onCreateFolder,
   onDeleteEntry,
@@ -409,6 +443,38 @@ export function FileTreeSidebar({
     dragRef.current = null;
   }, []);
 
+  const handleInsertImage = useCallback(() => {
+    if (!contextMenu?.node || contextMenu.node.type !== "file") return;
+    onInsertImage(contextMenu.node.path);
+    setContextMenu(null);
+  }, [contextMenu, onInsertImage]);
+
+  const [dropOver, setDropOver] = useState(false);
+
+  const handleBodyDragOver = useCallback((e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("Files")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setDropOver(true);
+  }, []);
+
+  const handleBodyDragLeave = useCallback(() => {
+    setDropOver(false);
+  }, []);
+
+  const handleBodyDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDropOver(false);
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if ((file as unknown as { path?: string }).path) {
+        onExternalFileDrop((file as unknown as { path: string }).path, rootDir);
+      }
+    }
+  }, [onExternalFileDrop, rootDir]);
+
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
 
@@ -488,7 +554,14 @@ export function FileTreeSidebar({
           </button>
         </div>
       </div>
-      <div className="ftree-body" role="tree" aria-label="Project files">
+      <div
+        className={`ftree-body ${dropOver ? "ftree-body--drop-active" : ""}`}
+        role="tree"
+        aria-label="Project files"
+        onDragOver={handleBodyDragOver}
+        onDragLeave={handleBodyDragLeave}
+        onDrop={handleBodyDrop}
+      >
         {creatingIn === rootDir && creatingType && (
           <div className="ftree-node ftree-node--creating" style={{ paddingLeft: 8 }}>
             <span className="ftree-chevron-space" />
@@ -512,6 +585,7 @@ export function FileTreeSidebar({
             creatingType={creatingType}
             onToggle={toggleExpand}
             onSelect={onFileSelect}
+            onImageSelect={onImageSelect}
             onContextMenu={handleContextMenu}
             onRenameSubmit={handleRenameSubmit}
             onRenameCancel={() => setRenamingPath(null)}
@@ -533,6 +607,7 @@ export function FileTreeSidebar({
           onNewFolder={() => startCreate("folder")}
           onRename={handleStartRename}
           onDelete={handleDelete}
+          onInsertImage={handleInsertImage}
         />
       )}
       <div

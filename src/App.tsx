@@ -6,6 +6,7 @@ import { AgentPanel } from "./panels/AgentPanel";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { FileTreeSidebar } from "./components/FileTreeSidebar";
 import { TabBar } from "./components/TabBar";
+import { ImagePreview } from "./components/ImagePreview";
 import { SettingsModal } from "./components/SettingsModal";
 import { useTheme } from "./hooks/useTheme";
 import { ThemeDropdown } from "./components/ThemeDropdown";
@@ -24,12 +25,19 @@ interface OpenTab {
   filePath: string;
   content: string;
   isDirty: boolean;
+  isImage?: boolean;
 }
 
 interface PendingDiff {
   filePath: string;
   original: string;
   modified: string;
+}
+
+const IMAGE_EXTS = new Set([".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".bmp", ".eps", ".ico"]);
+function isImagePath(p: string): boolean {
+  const dot = p.lastIndexOf(".");
+  return dot >= 0 && IMAGE_EXTS.has(p.slice(dot).toLowerCase());
 }
 
 function App() {
@@ -50,6 +58,7 @@ function App() {
   const [apiKeyVersion, setApiKeyVersion] = useState(0);
   const [fileTree, setFileTree] = useState<FileTreeNode[]>([]);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const editorInsertRef = useRef<((text: string) => void) | null>(null);
 
   const activeTab = useMemo(
     () => openTabs.find((t) => t.filePath === activeTabPath) ?? null,
@@ -249,6 +258,38 @@ function App() {
     });
   }, [activeTabPath]);
 
+  // ── Image operations ───────────────────────
+
+  const handleImageSelect = useCallback((filePath: string) => {
+    const existing = openTabs.find((t) => t.filePath === filePath);
+    if (existing) {
+      setActiveTabPath(filePath);
+      return;
+    }
+    setOpenTabs((prev) => [
+      ...prev,
+      { filePath, content: "", isDirty: false, isImage: true },
+    ]);
+    setActiveTabPath(filePath);
+  }, [openTabs]);
+
+  const handleInsertImage = useCallback((filePath: string) => {
+    if (!project) return;
+    const relPath = filePath.startsWith(project.rootDir + "/")
+      ? filePath.slice(project.rootDir.length + 1)
+      : filePath.split("/").pop()!;
+    const snippet = `\\includegraphics{${relPath}}`;
+    if (editorInsertRef.current) {
+      editorInsertRef.current(snippet);
+    }
+  }, [project]);
+
+  const handleExternalFileDrop = useCallback(async (sourcePath: string, destDir: string) => {
+    const result = await window.electronAPI.copyFileIn(sourcePath, destDir);
+    if ("error" in result) return;
+    await refreshFileTree();
+  }, [refreshFileTree]);
+
   // ── File operations within project ──────────
 
   const handleNewFileInProject = useCallback(async () => {
@@ -301,7 +342,7 @@ function App() {
   );
 
   const handleSave = useCallback(async () => {
-    if (!activeTabPath) return;
+    if (!activeTabPath || isImagePath(activeTabPath)) return;
     await window.electronAPI.saveFile(activeTabPath, contentRef.current);
     setOpenTabs((prev) =>
       prev.map((tab) =>
@@ -311,7 +352,7 @@ function App() {
   }, [activeTabPath]);
 
   const handleCompile = useCallback(async () => {
-    if (!activeTabPath) return;
+    if (!activeTabPath || isImagePath(activeTabPath)) return;
     await window.electronAPI.saveFile(activeTabPath, contentRef.current);
     setOpenTabs((prev) =>
       prev.map((tab) =>
@@ -489,7 +530,7 @@ function App() {
             type="button"
             aria-label="Compile LaTeX document"
             onClick={handleCompile}
-            disabled={compileState.status === "compiling" || !activeTab}
+            disabled={compileState.status === "compiling" || !activeTab || !!activeTab.isImage}
           >
             <img className="btn-img-icon" src={iconUrl("icon-compile.png")} alt="" aria-hidden="true" />
             {compileState.status === "compiling" ? "Compiling…" : "Compile"}
@@ -516,6 +557,9 @@ function App() {
                         tree={fileTree}
                         activeFilePath={activeTabPath}
                         onFileSelect={handleFileTreeSelect}
+                        onImageSelect={handleImageSelect}
+                        onInsertImage={handleInsertImage}
+                        onExternalFileDrop={handleExternalFileDrop}
                         onCreateFile={handleTreeCreateFile}
                         onCreateFolder={handleTreeCreateFolder}
                         onDeleteEntry={handleTreeDelete}
@@ -530,21 +574,29 @@ function App() {
                         onSelectTab={handleSelectTab}
                         onCloseTab={handleCloseTab}
                       />
-                      <EditorPanel
-                        content={activeTab?.content ?? ""}
-                        filePath={activeTab?.filePath ?? null}
-                        theme={theme}
-                        onChange={handleEditorChange}
-                        onSave={handleSave}
-                        onRename={handleRename}
-                        onAddToChat={handleAddToChat}
-                        pendingDiff={pendingDiff}
-                        onAcceptDiff={handleAcceptDiff}
-                        onDiscardDiff={handleDiscardDiff}
-                        onClose={() => togglePanel("editor")}
-                        onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
-                        onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
-                      />
+                      {activeTab?.isImage ? (
+                        <ImagePreview
+                          filePath={activeTab.filePath}
+                          projectRoot={project.rootDir}
+                        />
+                      ) : (
+                        <EditorPanel
+                          content={activeTab?.content ?? ""}
+                          filePath={activeTab?.filePath ?? null}
+                          theme={theme}
+                          onChange={handleEditorChange}
+                          onSave={handleSave}
+                          onRename={handleRename}
+                          onAddToChat={handleAddToChat}
+                          onInsertRef={editorInsertRef}
+                          pendingDiff={pendingDiff}
+                          onAcceptDiff={handleAcceptDiff}
+                          onDiscardDiff={handleDiscardDiff}
+                          onClose={() => togglePanel("editor")}
+                          onMoveLeft={canMoveLeft ? () => movePanel("editor", -1) : undefined}
+                          onMoveRight={canMoveRight ? () => movePanel("editor", 1) : undefined}
+                        />
+                      )}
                     </div>
                   </div>
                 );
