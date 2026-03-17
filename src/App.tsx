@@ -12,9 +12,15 @@ import type { EditorSelection } from "./agent/types";
 
 type PanelId = "editor" | "pdf" | "agent";
 
-interface OpenFile {
-  filePath: string | null;
+interface Project {
+  rootDir: string;
+  name: string;
+}
+
+interface OpenTab {
+  filePath: string;
   content: string;
+  isDirty: boolean;
 }
 
 interface PendingDiff {
@@ -26,7 +32,9 @@ interface PendingDiff {
 function App() {
   const iconUrl = (name: string) => `${import.meta.env.BASE_URL}icons/${name}`;
 
-  const [openFile, setOpenFile] = useState<OpenFile | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
+  const [openTabs, setOpenTabs] = useState<OpenTab[]>([]);
+  const [activeTabPath, setActiveTabPath] = useState<string | null>(null);
   const contentRef = useRef<string>("");
   const [recents, setRecents] = useState<string[]>([]);
   const [compileState, setCompileState] = useState<CompileStatus>({ status: "idle" });
@@ -37,6 +45,11 @@ function App() {
   const [pendingDiff, setPendingDiff] = useState<PendingDiff | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiKeyVersion, setApiKeyVersion] = useState(0);
+
+  const activeTab = useMemo(
+    () => openTabs.find((t) => t.filePath === activeTabPath) ?? null,
+    [openTabs, activeTabPath]
+  );
 
   const handleAddToChat = useCallback((selection: EditorSelection) => {
     setChatAttachment(selection);
@@ -74,98 +87,175 @@ function App() {
   );
 
   useEffect(() => {
-    window.electronAPI.getRecents().then(setRecents);
+    window.electronAPI.getRecentProjects().then(setRecents);
   }, []);
 
-  const handleOpenFile = useCallback(async () => {
-    const result = await window.electronAPI.openFile();
-    if (result) {
-      contentRef.current = result.content;
-      setOpenFile(result);
-      setCompileState({ status: "idle" });
+  // ── Project operations ──────────────────────
+
+  const openProjectAndMainFile = useCallback(async (info: Project) => {
+    setProject(info);
+    setOpenTabs([]);
+    setActiveTabPath(null);
+    contentRef.current = "";
+    setCompileState({ status: "idle" });
+    setPendingDiff(null);
+
+    const tree = await window.electronAPI.readProjectTree(info.rootDir);
+    const mainFile =
+      tree.find((n) => n.type === "file" && n.name === "main.tex") ||
+      tree.find((n) => n.type === "file" && n.name.endsWith(".tex")) ||
+      tree.find((n) => n.type === "file" && n.name.endsWith(".itek"));
+    if (mainFile) {
+      const data = await window.electronAPI.openPath(mainFile.path);
+      contentRef.current = data.content;
+      setOpenTabs([{ filePath: data.filePath, content: data.content, isDirty: false }]);
+      setActiveTabPath(data.filePath);
     }
+
+    const updatedRecents = await window.electronAPI.getRecentProjects();
+    setRecents(updatedRecents);
   }, []);
 
-  const handleNewFile = useCallback(async () => {
-    const result = await window.electronAPI.newFile();
+  const handleOpenProject = useCallback(async () => {
+    const result = await window.electronAPI.openProject();
     if (!result) return;
-    contentRef.current = result.content;
-    setOpenFile(result);
-    setCompileState({ status: "idle" });
-  }, []);
+    await openProjectAndMainFile(result);
+  }, [openProjectAndMainFile]);
 
-  const handleNewItekFile = useCallback(async () => {
-    const result = await window.electronAPI.newItekFile();
+  const handleNewProject = useCallback(async () => {
+    const result = await window.electronAPI.newProject();
     if (!result) return;
-    contentRef.current = result.content;
-    setOpenFile(result);
-    setCompileState({ status: "idle" });
-  }, []);
+    await openProjectAndMainFile(result);
+  }, [openProjectAndMainFile]);
 
-  const handleOpenRecent = useCallback(async (filePath: string) => {
-    const result = await window.electronAPI.openPath(filePath);
-    contentRef.current = result.content;
-    setOpenFile(result);
-    setCompileState({ status: "idle" });
-  }, []);
+  const handleOpenRecent = useCallback(async (dirPath: string) => {
+    const result = await window.electronAPI.openProjectPath(dirPath);
+    await openProjectAndMainFile(result);
+  }, [openProjectAndMainFile]);
 
-  const handleRemoveRecent = useCallback(async (filePath: string) => {
-    const updated = await window.electronAPI.removeRecent(filePath);
+  const handleRemoveRecent = useCallback(async (dirPath: string) => {
+    const updated = await window.electronAPI.removeRecentProject(dirPath);
     setRecents(updated);
   }, []);
 
-  const handleEditorChange = useCallback((value: string) => {
-    contentRef.current = value;
-    setOpenFile((prev) => (prev ? { ...prev, content: value } : null));
+  const handleCloseProject = useCallback(() => {
+    setProject(null);
+    setOpenTabs([]);
+    setActiveTabPath(null);
+    contentRef.current = "";
+    setCompileState({ status: "idle" });
+    setPendingDiff(null);
   }, []);
 
+  // ── File operations within project ──────────
+
+  const handleNewFileInProject = useCallback(async () => {
+    if (!project) return;
+    const result = await window.electronAPI.newProjectFile(project.rootDir);
+    if (!result) return;
+    contentRef.current = result.content;
+    setOpenTabs((prev) => [
+      ...prev,
+      { filePath: result.filePath, content: result.content, isDirty: false },
+    ]);
+    setActiveTabPath(result.filePath);
+    setCompileState({ status: "idle" });
+  }, [project]);
+
+  const handleOpenFileInProject = useCallback(async () => {
+    const result = await window.electronAPI.openFile();
+    if (!result) return;
+    const existing = openTabs.find((t) => t.filePath === result.filePath);
+    if (existing) {
+      setActiveTabPath(result.filePath);
+      contentRef.current = existing.content;
+      return;
+    }
+    contentRef.current = result.content;
+    setOpenTabs((prev) => [
+      ...prev,
+      { filePath: result.filePath, content: result.content, isDirty: false },
+    ]);
+    setActiveTabPath(result.filePath);
+    setCompileState({ status: "idle" });
+  }, [openTabs]);
+
+  // ── Editor operations ───────────────────────
+
+  const handleEditorChange = useCallback(
+    (value: string) => {
+      contentRef.current = value;
+      if (!activeTabPath) return;
+      setOpenTabs((prev) =>
+        prev.map((tab) =>
+          tab.filePath === activeTabPath
+            ? { ...tab, content: value, isDirty: true }
+            : tab
+        )
+      );
+    },
+    [activeTabPath]
+  );
+
   const handleSave = useCallback(async () => {
-    if (!openFile?.filePath) return;
-    await window.electronAPI.saveFile(openFile.filePath, contentRef.current);
-  }, [openFile?.filePath]);
+    if (!activeTabPath) return;
+    await window.electronAPI.saveFile(activeTabPath, contentRef.current);
+    setOpenTabs((prev) =>
+      prev.map((tab) =>
+        tab.filePath === activeTabPath ? { ...tab, isDirty: false } : tab
+      )
+    );
+  }, [activeTabPath]);
 
   const handleCompile = useCallback(async () => {
-    if (!openFile?.filePath) return;
-    // Save first so the compiled file is up to date
-    await window.electronAPI.saveFile(openFile.filePath, contentRef.current);
+    if (!activeTabPath) return;
+    await window.electronAPI.saveFile(activeTabPath, contentRef.current);
+    setOpenTabs((prev) =>
+      prev.map((tab) =>
+        tab.filePath === activeTabPath ? { ...tab, isDirty: false } : tab
+      )
+    );
     setCompileState({ status: "compiling" });
-    const result = await window.electronAPI.compileFile(openFile.filePath);
+    const result = await window.electronAPI.compileFile(activeTabPath);
     setCompileState({ status: "done", result });
-  }, [openFile?.filePath]);
-
-  useEffect(() => {
-    const cleanupSave = window.electronAPI.onMenuSave(() => handleSave());
-    const cleanupOpen = window.electronAPI.onMenuOpen(() => handleOpenFile());
-    const cleanupNew = window.electronAPI.onMenuNew(() => handleNewFile());
-    const cleanupCompile = window.electronAPI.onMenuCompile(() => handleCompile());
-    return () => {
-      cleanupSave();
-      cleanupOpen();
-      cleanupNew();
-      cleanupCompile();
-    };
-  }, [handleSave, handleOpenFile, handleNewFile, handleCompile]);
+  }, [activeTabPath]);
 
   const handleRename = useCallback(
     async (newName: string) => {
-      if (!openFile?.filePath) return;
-      const newPath = await window.electronAPI.renameFile(openFile.filePath, newName);
-      setOpenFile((prev) => (prev ? { ...prev, filePath: newPath } : null));
-      const updatedRecents = await window.electronAPI.getRecents();
-      setRecents(updatedRecents);
+      if (!activeTabPath) return;
+      const newPath = await window.electronAPI.renameFile(activeTabPath, newName);
+      setOpenTabs((prev) =>
+        prev.map((tab) =>
+          tab.filePath === activeTabPath ? { ...tab, filePath: newPath } : tab
+        )
+      );
+      setActiveTabPath(newPath);
     },
-    [openFile?.filePath]
+    [activeTabPath]
   );
 
-  const handleFileEdited = useCallback((editedPath: string, newContent: string) => {
-    if (!openFile || openFile.filePath !== editedPath) return;
-    setPendingDiff({ filePath: editedPath, original: contentRef.current, modified: newContent });
-  }, [openFile?.filePath]);
+  const handleFileEdited = useCallback(
+    (editedPath: string, newContent: string) => {
+      if (!activeTabPath || activeTabPath !== editedPath) return;
+      setPendingDiff({
+        filePath: editedPath,
+        original: contentRef.current,
+        modified: newContent,
+      });
+    },
+    [activeTabPath]
+  );
 
   const handleAcceptDiff = useCallback(() => {
     if (!pendingDiff) return;
     contentRef.current = pendingDiff.modified;
-    setOpenFile((prev) => (prev ? { ...prev, content: pendingDiff.modified } : null));
+    setOpenTabs((prev) =>
+      prev.map((tab) =>
+        tab.filePath === pendingDiff.filePath
+          ? { ...tab, content: pendingDiff.modified, isDirty: true }
+          : tab
+      )
+    );
     setPendingDiff(null);
   }, [pendingDiff]);
 
@@ -173,12 +263,42 @@ function App() {
     setPendingDiff(null);
   }, []);
 
-  if (!openFile) {
+  // ── Menu listeners ──────────────────────────
+
+  useEffect(() => {
+    const cleanupSave = window.electronAPI.onMenuSave(() => handleSave());
+    const cleanupOpen = window.electronAPI.onMenuOpen(() => {
+      if (project) handleOpenFileInProject();
+      else handleOpenProject();
+    });
+    const cleanupNew = window.electronAPI.onMenuNew(() => {
+      if (project) handleNewFileInProject();
+      else handleNewProject();
+    });
+    const cleanupCompile = window.electronAPI.onMenuCompile(() => handleCompile());
+    return () => {
+      cleanupSave();
+      cleanupOpen();
+      cleanupNew();
+      cleanupCompile();
+    };
+  }, [
+    handleSave,
+    handleOpenProject,
+    handleNewProject,
+    handleOpenFileInProject,
+    handleNewFileInProject,
+    handleCompile,
+    project,
+  ]);
+
+  // ── Render ──────────────────────────────────
+
+  if (!project) {
     return (
       <WelcomeScreen
-        onOpenFile={handleOpenFile}
-        onNewFile={handleNewFile}
-        onNewItekFile={handleNewItekFile}
+        onOpenProject={handleOpenProject}
+        onNewProject={handleNewProject}
         onOpenRecent={handleOpenRecent}
         onRemoveRecent={handleRemoveRecent}
         recents={recents}
@@ -188,16 +308,12 @@ function App() {
     );
   }
 
-  const parentDir = openFile.filePath
-    ? openFile.filePath.split("/").slice(-2, -1)[0]
-    : null;
-
   return (
     <div className="app-root">
       <header className="app-header" role="banner">
         <button
           className="header-brand"
-          onClick={() => setOpenFile(null)}
+          onClick={handleCloseProject}
           aria-label="Return to home screen"
           type="button"
         >
@@ -207,11 +323,9 @@ function App() {
 
         <div className="header-separator" aria-hidden="true" />
 
-        {parentDir && (
-          <span className="header-filepath" title={openFile.filePath ?? undefined}>
-            {parentDir} /
-          </span>
-        )}
+        <span className="header-filepath" title={project.rootDir}>
+          {project.name}
+        </span>
 
         <div className="header-spacer" />
 
@@ -259,7 +373,7 @@ function App() {
             type="button"
             aria-label="Compile LaTeX document"
             onClick={handleCompile}
-            disabled={compileState.status === "compiling"}
+            disabled={compileState.status === "compiling" || !activeTab}
           >
             <img className="btn-img-icon" src={iconUrl("icon-compile.png")} alt="" aria-hidden="true" />
             {compileState.status === "compiling" ? "Compiling…" : "Compile"}
@@ -279,8 +393,8 @@ function App() {
               case "editor":
                 return (
                   <EditorPanel
-                    content={openFile.content}
-                    filePath={openFile.filePath}
+                    content={activeTab?.content ?? ""}
+                    filePath={activeTab?.filePath ?? null}
                     theme={theme}
                     onChange={handleEditorChange}
                     onSave={handleSave}
@@ -305,13 +419,13 @@ function App() {
               case "agent":
                 return (
                   <AgentPanel
-                    filePath={openFile.filePath}
-                    content={openFile.content}
+                    filePath={activeTab?.filePath ?? null}
+                    content={activeTab?.content ?? ""}
                     compileErrors={
                       compileState.status === "done"
                         ? compileState.result.errors
                             .filter((e) => e.type === "error" && e.line !== null)
-                            .map((e) => ({ file: openFile.filePath ?? "unknown", line: e.line!, message: e.message }))
+                            .map((e) => ({ file: activeTab?.filePath ?? "unknown", line: e.line!, message: e.message }))
                         : undefined
                     }
                     chatAttachment={chatAttachment}

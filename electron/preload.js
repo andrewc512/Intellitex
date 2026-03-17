@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
+  // File operations
   openFile: () => ipcRenderer.invoke("dialog:openFile"),
   openPath: (filePath) => ipcRenderer.invoke("file:openPath", filePath),
   chooseDirectory: () => ipcRenderer.invoke("file:chooseDirectory"),
@@ -10,6 +11,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeRecent: (filePath) => ipcRenderer.invoke("file:removeRecent", filePath),
   saveFile: (filePath, content) => ipcRenderer.invoke("file:save", filePath, content),
   renameFile: (oldPath, newName) => ipcRenderer.invoke("file:rename", oldPath, newName),
+
+  // Project operations
+  openProject: () => ipcRenderer.invoke("project:open"),
+  openProjectPath: (dirPath) => ipcRenderer.invoke("project:openPath", dirPath),
+  newProject: () => ipcRenderer.invoke("project:new"),
+  readProjectTree: (rootDir) => ipcRenderer.invoke("project:readTree", rootDir),
+  getRecentProjects: () => ipcRenderer.invoke("project:getRecents"),
+  removeRecentProject: (dirPath) => ipcRenderer.invoke("project:removeRecent", dirPath),
+  newProjectFile: (rootDir) => ipcRenderer.invoke("project:newFile", rootDir),
   onMenuSave: (callback) => {
     ipcRenderer.on("menu:save", callback);
     return () => ipcRenderer.removeListener("menu:save", callback);
