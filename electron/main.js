@@ -426,7 +426,9 @@ ipcMain.handle("project:newFile", async (_event, rootDir) => {
   });
   if (canceled || !rawPath) return null;
 
-  const template = rawPath.endsWith(".tex") ? "% New file\n" : "";
+  let template = "";
+  if (rawPath.endsWith(".tex")) template = "% New file\n";
+  else if (rawPath.endsWith(".itek")) template = ITEK_TEMPLATE;
   await fs.writeFile(rawPath, template, "utf-8");
   return { filePath: rawPath, content: template };
 });
@@ -439,7 +441,9 @@ ipcMain.handle("project:createFile", async (_event, parentDir, fileName) => {
   } catch {
     // does not exist — safe to create
   }
-  const template = fileName.endsWith(".tex") ? "% New file\n" : "";
+  let template = "";
+  if (fileName.endsWith(".tex")) template = "% New file\n";
+  else if (fileName.endsWith(".itek")) template = ITEK_TEMPLATE;
   await fs.writeFile(filePath, template, "utf-8");
   return { filePath, content: template };
 });

@@ -133,6 +133,7 @@ function ContextMenu({
   state,
   onClose,
   onNewFile: onNew,
+  onNewItekFile,
   onNewFolder,
   onRename,
   onDelete,
@@ -141,6 +142,7 @@ function ContextMenu({
   state: ContextMenuState;
   onClose: () => void;
   onNewFile: () => void;
+  onNewItekFile: () => void;
   onNewFolder: () => void;
   onRename: () => void;
   onDelete: () => void;
@@ -181,6 +183,9 @@ function ContextMenu({
       )}
       <button type="button" className="ftree-context-item" onClick={() => { onNew(); onClose(); }}>
         New File
+      </button>
+      <button type="button" className="ftree-context-item" onClick={() => { onNewItekFile(); onClose(); }}>
+        New itek File
       </button>
       <button type="button" className="ftree-context-item" onClick={() => { onNewFolder(); onClose(); }}>
         New Folder
@@ -225,7 +230,7 @@ function TreeNode({
   activeFilePath: string | null;
   renamingPath: string | null;
   creatingIn: string | null;
-  creatingType: "file" | "folder" | null;
+  creatingType: "file" | "folder" | "itek" | null;
   onToggle: (path: string) => void;
   onSelect: (filePath: string) => void;
   onImageSelect: (filePath: string) => void;
@@ -303,9 +308,9 @@ function TreeNode({
           {isCreatingHere && creatingType && (
             <div className="ftree-node ftree-node--creating" style={{ paddingLeft: 8 + (depth + 1) * 16 }}>
               <span className="ftree-chevron-space" />
-              <FileIcon name={creatingType === "folder" ? "__dir__" : "new.tex"} type={creatingType === "folder" ? "directory" : "file"} />
+              <FileIcon name={creatingType === "folder" ? "__dir__" : creatingType === "itek" ? "resume.itek" : "new.tex"} type={creatingType === "folder" ? "directory" : "file"} />
               <InlineInput
-                defaultValue={creatingType === "folder" ? "new-folder" : "untitled.tex"}
+                defaultValue={creatingType === "folder" ? "new-folder" : creatingType === "itek" ? "resume.itek" : "untitled.tex"}
                 onSubmit={onCreateSubmit}
                 onCancel={onCreateCancel}
               />
@@ -358,7 +363,7 @@ export function FileTreeSidebar({
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [creatingIn, setCreatingIn] = useState<string | null>(null);
-  const [creatingType, setCreatingType] = useState<"file" | "folder" | null>(null);
+  const [creatingType, setCreatingType] = useState<"file" | "folder" | "itek" | null>(null);
 
   const toggleExpand = useCallback((path: string) => {
     setExpanded((prev) => {
@@ -381,13 +386,13 @@ export function FileTreeSidebar({
     setContextMenu({ x: e.clientX, y: e.clientY, node: null, parentDir: rootDir });
   }, [rootDir]);
 
-  const startCreateIn = useCallback((dir: string, type: "file" | "folder") => {
+  const startCreateIn = useCallback((dir: string, type: "file" | "folder" | "itek") => {
     setCreatingIn(dir);
     setCreatingType(type);
     setExpanded((prev) => new Set(prev).add(dir));
   }, []);
 
-  const startCreate = useCallback((type: "file" | "folder") => {
+  const startCreate = useCallback((type: "file" | "folder" | "itek") => {
     if (!contextMenu) return;
     startCreateIn(contextMenu.parentDir, type);
     setContextMenu(null);
@@ -395,7 +400,7 @@ export function FileTreeSidebar({
 
   const handleCreateSubmit = useCallback((name: string) => {
     if (!creatingIn || !creatingType) return;
-    if (creatingType === "file") onCreateFile(creatingIn, name);
+    if (creatingType === "file" || creatingType === "itek") onCreateFile(creatingIn, name);
     else onCreateFolder(creatingIn, name);
     setCreatingIn(null);
     setCreatingType(null);
@@ -528,6 +533,19 @@ export function FileTreeSidebar({
                 <button
                   type="button"
                   className="ftree-context-item"
+                  onClick={() => { startCreateIn(rootDir, "itek"); setAddMenuOpen(false); }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                  New itek File
+                </button>
+                <button
+                  type="button"
+                  className="ftree-context-item"
                   onClick={() => { startCreateIn(rootDir, "folder"); setAddMenuOpen(false); }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -565,9 +583,9 @@ export function FileTreeSidebar({
         {creatingIn === rootDir && creatingType && (
           <div className="ftree-node ftree-node--creating" style={{ paddingLeft: 8 }}>
             <span className="ftree-chevron-space" />
-            <FileIcon name={creatingType === "folder" ? "__dir__" : "new.tex"} type={creatingType === "folder" ? "directory" : "file"} />
+            <FileIcon name={creatingType === "folder" ? "__dir__" : creatingType === "itek" ? "resume.itek" : "new.tex"} type={creatingType === "folder" ? "directory" : "file"} />
             <InlineInput
-              defaultValue={creatingType === "folder" ? "new-folder" : "untitled.tex"}
+              defaultValue={creatingType === "folder" ? "new-folder" : creatingType === "itek" ? "resume.itek" : "untitled.tex"}
               onSubmit={handleCreateSubmit}
               onCancel={handleCreateCancel}
             />
@@ -604,6 +622,7 @@ export function FileTreeSidebar({
           state={contextMenu}
           onClose={() => setContextMenu(null)}
           onNewFile={() => startCreate("file")}
+          onNewItekFile={() => startCreate("itek")}
           onNewFolder={() => startCreate("folder")}
           onRename={handleStartRename}
           onDelete={handleDelete}
