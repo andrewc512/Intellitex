@@ -12,6 +12,7 @@ const DEFAULTS = {
 };
 
 let cached = null;
+const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
 
 function encrypt(plaintext) {
   if (!plaintext) return "";
@@ -28,7 +29,10 @@ function decrypt(stored) {
     try {
       return safeStorage.decryptString(Buffer.from(stored, "base64"));
     } catch {
-      return stored;
+      // If we previously stored plaintext while encryption was unavailable,
+      // keep supporting it. Otherwise, don't pass an encrypted blob as an API key.
+      if (typeof stored === "string" && stored.trim().startsWith("sk-")) return stored;
+      return "";
     }
   }
   return stored;
@@ -65,11 +69,11 @@ async function setApiKey(provider, key) {
 async function getApiKey(provider) {
   const settings = await loadSettings();
   const p = provider || settings.provider;
+  // In dev, always prefer `.env` for OpenAI to avoid stale/invalid stored keys.
+  if (p === "openai" && isDev && process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
   const stored = settings.apiKeys?.[p];
   if (stored) return decrypt(stored);
-  if (p === "openai" && process.env.OPENAI_API_KEY) {
-    return process.env.OPENAI_API_KEY;
-  }
+  if (p === "openai" && process.env.OPENAI_API_KEY) return process.env.OPENAI_API_KEY;
   return null;
 }
 

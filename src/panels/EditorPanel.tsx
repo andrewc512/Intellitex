@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useRef, useCallback, useEffect, useState, type MutableRefObject } from "react";
 import Editor, { DiffEditor, type Monaco } from "@monaco-editor/react";
 import type { editor, languages } from "monaco-editor";
 import type { Theme } from "../hooks/useTheme";
@@ -18,6 +18,7 @@ interface EditorPanelProps {
   onSave: () => void;
   onRename: (newName: string) => void;
   onAddToChat?: (selection: EditorSelection) => void;
+  onInsertRef?: MutableRefObject<((text: string) => void) | null>;
   pendingDiff?: PendingDiff | null;
   onAcceptDiff?: () => void;
   onDiscardDiff?: () => void;
@@ -286,15 +287,30 @@ function setupSectionDrag(ed: editor.IStandaloneCodeEditor, m: typeof import("mo
   });
 }
 
-export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename, onAddToChat, pendingDiff, onAcceptDiff, onDiscardDiff, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
-  const filename = filePath ? filePath.split("/").pop()! : "Untitled.tex";
+export function EditorPanel({ content, filePath, theme, onChange, onSave, onRename: _onRename, onAddToChat, onInsertRef, pendingDiff, onAcceptDiff, onDiscardDiff, onClose, onMoveLeft, onMoveRight }: EditorPanelProps) {
   const language = getEditorLanguage(filePath);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(filename);
-  const inputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const onAddToChatRef = useRef(onAddToChat);
   onAddToChatRef.current = onAddToChat;
+  const [dragOver, setDragOver] = useState(false);
+
+  const insertTextAtCursor = useCallback((text: string) => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    const pos = ed.getPosition();
+    if (!pos) return;
+    ed.executeEdits("insert-image", [{
+      range: { startLineNumber: pos.lineNumber, startColumn: pos.column, endLineNumber: pos.lineNumber, endColumn: pos.column },
+      text,
+      forceMoveMarkers: true,
+    }]);
+    ed.focus();
+  }, []);
+
+  useEffect(() => {
+    if (onInsertRef) onInsertRef.current = insertTextAtCursor;
+    return () => { if (onInsertRef) onInsertRef.current = null; };
+  }, [onInsertRef, insertTextAtCursor]);
 
   const getSelectionFromEditor = useCallback((): EditorSelection | null => {
     const ed = editorRef.current;
@@ -306,68 +322,47 @@ export function EditorPanel({ content, filePath, theme, onChange, onSave, onRena
     return { startLine: sel.startLineNumber, endLine: sel.endLineNumber, text };
   }, []);
 
-  useEffect(() => {
-    if (editing) {
-      inputRef.current?.focus();
-      const dotIndex = draft.lastIndexOf(".");
-      inputRef.current?.setSelectionRange(0, dotIndex > 0 ? dotIndex : draft.length);
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("application/x-intellitex-image")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      setDragOver(true);
     }
-  }, [editing]);
+  }, []);
 
-  const commitRename = () => {
-    setEditing(false);
-    const trimmed = draft.trim();
-    if (!trimmed || trimmed === filename) return;
-    onRename(trimmed);
-  };
+  const handleDragLeave = useCallback(() => setDragOver(false), []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    setDragOver(false);
+    const imgPath = e.dataTransfer.getData("application/x-intellitex-image");
+    if (!imgPath) return;
+    e.preventDefault();
+    const name = imgPath.split("/").pop()!;
+    const parts = imgPath.split("/");
+    let relPath = name;
+    if (filePath) {
+      const fileDir = filePath.substring(0, filePath.lastIndexOf("/"));
+      const fileParts = fileDir.split("/");
+      let common = 0;
+      while (common < fileParts.length && common < parts.length && fileParts[common] === parts[common]) common++;
+      const ups = fileParts.length - common;
+      relPath = [...Array(ups).fill(".."), ...parts.slice(common)].join("/");
+    }
+    insertTextAtCursor(`\\includegraphics{${relPath}}`);
+  }, [filePath, insertTextAtCursor]);
 
   return (
-    <div className="panel" role="region" aria-label="Editor">
-      <div className="panel-header">
-        <div className="editor-tab">
-          <svg className="editor-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-          {editing ? (
-            <input
-              ref={inputRef}
-              className="editor-tab-input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={commitRename}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commitRename();
-                if (e.key === "Escape") {
-                  setDraft(filename);
-                  setEditing(false);
-                }
-              }}
-              aria-label="Rename file"
-            />
-          ) : (
-            <span
-              className="editor-tab-name"
-              onClick={() => {
-                setDraft(filename);
-                setEditing(true);
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  setDraft(filename);
-                  setEditing(true);
-                }
-              }}
-              title="Click to rename"
-              aria-label={`File: ${filename}. Press Enter to rename.`}
-            >
-              {filename}
-            </span>
-          )}
-        </div>
-        <div className="panel-header-controls">
+    <div
+      className={`panel editor-panel--tabbed ${dragOver ? "editor-panel--drag-over" : ""}`}
+      role="region"
+      aria-label="Editor"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <div className="panel-header panel-header--editor">
+        <span className="panel-header-title">Editor</span>
+        <div className="panel-header-controls panel-header-controls--always">
           {onMoveLeft && (
             <button className="btn-icon" type="button" onClick={onMoveLeft} aria-label="Move panel left" title="Move left">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>

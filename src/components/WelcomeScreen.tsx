@@ -2,20 +2,18 @@ import type { Theme } from "../hooks/useTheme";
 import { ThemeDropdown } from "./ThemeDropdown";
 
 interface WelcomeScreenProps {
-  onOpenFile: () => void;
-  onNewFile: () => void;
-  onNewItekFile: () => void;
-  onOpenRecent: (filePath: string) => void;
-  onRemoveRecent: (filePath: string) => void;
+  onOpenProject: () => void;
+  onNewProject: () => void;
+  onOpenRecent: (dirPath: string) => void;
+  onRemoveRecent: (dirPath: string) => void;
   recents: string[];
   theme: Theme;
   onSetTheme: (theme: Theme) => void;
 }
 
 export function WelcomeScreen({
-  onOpenFile,
-  onNewFile,
-  onNewItekFile,
+  onOpenProject,
+  onNewProject,
   onOpenRecent,
   onRemoveRecent,
   recents,
@@ -24,9 +22,9 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
   const iconUrl = (name: string) => `${import.meta.env.BASE_URL}icons/${name}`;
 
-  const handleRemove = (e: React.MouseEvent, filePath: string) => {
+  const handleRemove = (e: React.MouseEvent, dirPath: string) => {
     e.stopPropagation();
-    onRemoveRecent(filePath);
+    onRemoveRecent(dirPath);
   };
 
   return (
@@ -39,29 +37,29 @@ export function WelcomeScreen({
 
         <h1 className="welcome-title">IntelliTex</h1>
         <p className="welcome-subtitle">
-          A LaTeX editor for easy, standout resumes
+          An AI-powered LaTeX editor for research
         </p>
 
         <div className="welcome-actions">
-          <span className="welcome-btn-wrap" data-tooltip="Open any .tex or .itek file from your computer">
+          <span className="welcome-btn-wrap" data-tooltip="Open an existing project folder">
             <button
               type="button"
               className="welcome-btn"
-              onClick={onOpenFile}
-              aria-label="Open an existing LaTeX file"
+              onClick={onOpenProject}
+              aria-label="Open an existing project"
             >
               <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
               </svg>
-              Open File
+              Open Project
             </button>
           </span>
-          <span className="welcome-btn-wrap" data-tooltip="Full LaTeX — total layout control, bring your own template">
+          <span className="welcome-btn-wrap" data-tooltip="Create a new project folder with a main.tex file">
             <button
               type="button"
-              className="welcome-btn"
-              onClick={onNewFile}
-              aria-label="Create a new LaTeX file"
+              className="welcome-btn welcome-btn--accent"
+              onClick={onNewProject}
+              aria-label="Create a new project"
             >
               <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -69,59 +67,37 @@ export function WelcomeScreen({
                 <line x1="12" y1="18" x2="12" y2="12"/>
                 <line x1="9" y1="15" x2="15" y2="15"/>
               </svg>
-              New File
-              <span className="welcome-btn-badge">.tex</span>
-            </button>
-          </span>
-          <span className="welcome-btn-wrap" data-tooltip="Clean syntax, ATS-friendly output, auto-fitted to one page">
-            <button
-              type="button"
-              className="welcome-btn welcome-btn--accent"
-              onClick={onNewItekFile}
-              aria-label="Create a new itek resume"
-            >
-              <svg className="welcome-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                <line x1="9" y1="12" x2="15" y2="12"/>
-                <line x1="9" y1="16" x2="13" y2="16"/>
-              </svg>
-              New Resume
-              <span className="welcome-btn-badges">
-                <span className="welcome-btn-badge">.itek</span>
-                <span className="welcome-btn-badge welcome-btn-badge--beta">Beta</span>
-              </span>
+              New Project
             </button>
           </span>
         </div>
 
         {recents.length > 0 && (
           <div className="welcome-recents">
-            <h3 className="welcome-recents-title">Recent</h3>
+            <h3 className="welcome-recents-title">Recent Projects</h3>
             <ul className="welcome-recents-list" role="list">
-              {recents.map((filePath) => (
-                <li key={filePath} className="welcome-recent-item">
+              {recents.map((dirPath) => (
+                <li key={dirPath} className="welcome-recent-item">
                   <button
                     type="button"
                     className="welcome-recent-btn"
-                    onClick={() => onOpenRecent(filePath)}
-                    title={filePath}
-                    aria-label={`Open ${filePath.split("/").pop() || filePath}`}
+                    onClick={() => onOpenRecent(dirPath)}
+                    title={dirPath}
+                    aria-label={`Open ${dirPath.split("/").pop() || dirPath}`}
                   >
                     <svg className="welcome-recent-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
+                      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                     </svg>
                     <span className="welcome-recent-name">
-                      {filePath.split("/").pop() || filePath}
+                      {dirPath.split("/").pop() || dirPath}
                     </span>
-                    <span className="welcome-recent-path">{shortenPath(filePath)}</span>
+                    <span className="welcome-recent-path">{shortenPath(dirPath)}</span>
                   </button>
                   <button
                     type="button"
                     className="welcome-recent-remove"
-                    onClick={(e) => handleRemove(e, filePath)}
-                    aria-label={`Remove ${filePath.split("/").pop() || filePath} from recents`}
+                    onClick={(e) => handleRemove(e, dirPath)}
+                    aria-label={`Remove ${dirPath.split("/").pop() || dirPath} from recents`}
                     title="Remove from recents"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
