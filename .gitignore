@@ -8,3 +8,9 @@ release
 *.log
 *.pdf
 .claude/
+
+# Landing site
+landing/node_modules
+landing/dist
+landing/public/*.dmg
+landing/public/*.zip
