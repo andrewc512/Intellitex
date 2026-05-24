@@ -1,6 +1,6 @@
 import { RevealGroup } from './Reveal';
 
-const DMG_URL = '/IntelliTex-0.1.0-arm64.dmg';
+const DMG_URL = 'https://github.com/jaytan3966/Intellitex/releases/download/v0.1.0/IntelliTex-0.1.0-arm64.dmg';
 const BASICTEX_URL = 'https://www.tug.org/mactex/morepackages.html';
 const MACTEX_URL = 'https://www.tug.org/mactex/';
 
