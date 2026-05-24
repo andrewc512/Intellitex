@@ -1,6 +1,7 @@
 # IntelliTex
 
 LaTeX IDE with AI agent: editor | PDF preview | agent panel.
+Visit the [official website](https://intellitex.vercel.app/) to learn more.
 
 ## Requirements
 
@@ -79,5 +80,3 @@ IntelliTex/
 ├── package.json
 └── vite.config.ts
 ```
-
-Next steps: add Monaco for the editor, pdf.js for the PDF panel, and IPC + LLM integration for the agent.
